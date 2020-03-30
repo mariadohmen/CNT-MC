@@ -18,14 +18,12 @@ class CNTSimFile:
         self.filepath = filepath
         self.kin_const = kin_const
         self.QY = None
-        self.n_photons = None
-        self.CNT_length = None
-        self.t_step = None
+        self.calc_dict = None
         self.n_defects = None
         if Path(filepath).is_file():
             self.load()
             print('Existing file loaded successfully.')
-
+            
     def __str__(self):
         return self.filepath
 
@@ -39,10 +37,7 @@ class CNTSimFile:
         data = h5py.File(self.filepath)
         self.kin_const = data['kin_const'][:]
         self.QY = data['QY'][:]
-        self.n_photons = data['n_photons'][:]
-        self.CNT_length = data['CNT_length'][:]
-        self.t_step = data['t_step'][:]
-        self.n_defects = data['n_defects'][:]
+        self.calc_dict = {k: v for k, v in data['dict'].attrs.items()}
         data.close()
 
     def save(self):
@@ -58,18 +53,9 @@ class CNTSimFile:
             hdf5_file.create_dataset('QY', compression='gzip',
                                      data=self.QY,
                                      dtype=np.float32)
-            hdf5_file.create_dataset('n_photons', compression='gzip',
-                                     data=self.n_photons,
-                                     dtype=np.float32)
-            hdf5_file.create_dataset('CNT_length', compression='gzip',
-                                     data=self.CNT_length,
-                                     dtype=np.float32)
-            hdf5_file.create_dataset('t_step', compression='gzip',
-                                     data=self.t_step,
-                                     dtype=np.float32)
-            hdf5_file.create_dataset('n_defects', compression='gzip',
-                                     data=self.n_defects,
-                                     dtype=np.float32)
+            grp = hdf5_file.create_group('dict', )
+            for key, value in self.calc_dict.items():
+                grp.attrs[key] = value
         except:
             print('Datasets could not be created')
         finally:
@@ -98,13 +84,13 @@ class CNTSimFile:
         info = Text()
         display(info)
 
-        self.n_photons = n_photons
+        self.calc_dict['n_photons'] = n_photons
         # initiate matrix size
         photons_fate = func(self.kin_const, **func_kwargs)
         info.value = f"Processing photon (1/ {n_photons})"
 
         # loop for the desired number of photons
-        for p in np.arange(self.n_photons-1):
+        for p in np.arange(n_photons-1):
             photons_fate += func(**func_kwargs)
             info.value = f"Processing photon ({p+2}/ {n_photons})"
 
@@ -112,3 +98,30 @@ class CNTSimFile:
         quantum_yield = photons_fate[:2] / n_photons
         self.QY = quantum_yield
         return photons_fate, quantum_yield
+
+    def defect_dependance(self, n_photons, func, n_defects, CNT_length,
+                          t_step, **func_kwargs):
+        self.calc_dict['n_defects'] = n_defects
+        self.calc_dict['n_photons'] = n_photons
+        self.calc_dict['CNT_length'] = CNT_length
+        self.calc_dict['t_step'] = t_step
+        self.QY = np.zeros((len(n_defects), 2))
+        for i, n_def in enumerate(n_defects):
+            _, self.QY[i, :] = self.photons_fate(n_photons, func,
+                      {'n_defects': n_def, 'length': CNT_length,
+                       't_step': t_step, **func_kwargs})
+
+    def length_dependance(self, n_photons, func, CNT_length, defect_density,
+                          t_step, **func_kwargs):
+        self.calc_dict['CNT_length'] = CNT_length
+        self.calc_dict['t_step'] = t_step
+        self.calc_dict['n_photons'] = n_photons
+        self.calc_dict['defect_density'] = defect_density
+        self.n_defects = np.zeros(len(CNT_length))
+        self.QY = np.zeros((len(self.n_defects), 2))
+        for i, l_nm in enumerate(CNT_length):
+            self.n_defects[i] = round(l_nm/defect_density)
+            _, self.QY[i, :] = self.photons_fate(n_photons, func,
+                      {'n_defects': self.n_defects[i], 'length': l_nm,
+                       't_step': t_step, **func_kwargs})
+        self.calc_dict['n_defects'] = self.n_defects
