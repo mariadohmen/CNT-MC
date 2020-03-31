@@ -17,6 +17,7 @@ L_nm = 300  # length of the nanotube
 R_nm = 1  # radius of the exiton
 N_DEF = 10  # number of defects per nanotube
 T_STEP_ps = 1  # time step
+
 # Exciton Diffusion Coefficient https://doi.org/10.1021/nn101612b
 D_exc_nm_per_s = 1.07e15
 
@@ -104,7 +105,7 @@ k_d_r_per_s = 2.5e09  # constant for radiativ decay from E11*
 k_nr_per_s = 5e09  # constant of non-radiativ decay from E11
 k_d_nr_per_s = 5e09  # constant for non-radiativ decay from E11*
 
-KIN_CONST = np.array([k_r_per_s, k_d_r_per_s, k_nr_per_s, k_d_nr_per_s])
+KIN_CONST = np.array([k_d_r_per_s, k_r_per_s, k_d_nr_per_s, k_nr_per_s, k_dt_per_s])
 
 
 def k_nothing(t_step, k_r=k_r_per_s, k_nr=k_nr_per_s, tau=TAU_ps):
@@ -116,12 +117,12 @@ def k_nothing_d(t_step, k_d_r=k_d_r_per_s, k_d_nr=k_d_nr_per_s,
     return (k_d_r + k_d_nr + k_dt) * tau_d / t_step
 
 
-def create_defects(length=L_nm, n_def=N_DEF):
+def create_defects(CNT_length=L_nm, n_def=N_DEF):
     """Creates defects along the CNT at random position.
 
     Parameters
     ----------
-    length : int, optional
+    CNT_length : int, optional
         Length of the CNT in nm, global constant as default.
     n_def : int, optional
         Number of defects on the CNT, global constant as default.
@@ -132,25 +133,25 @@ def create_defects(length=L_nm, n_def=N_DEF):
         Positions in nm of the defects on the CNT stored in
         array size (n_def, 1)
     """
-    return np.random.randint(0, length, size=(n_def, 1))
+    return np.random.randint(0, CNT_length, size=(n_def, 1))
 
 
-def create_exciton(length=L_nm):
+def create_exciton(CNT_length=L_nm):
     """Creates exciton on the CNT at random position.
 
     Parameters
     ----------
-    length : int, optional
+    CNT_length : int, optional
         Length of the CNT in nm, global constant as default.
 
     Returns
     -------
     pos_exc : int
         Position of the exciton along the CNT as a random integer."""
-    return random.randrange(length)
+    return random.randrange(CNT_length)
 
 
-def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
+def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     """
 
     Parameters
@@ -158,8 +159,8 @@ def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
     t_step : float
         Timestep in ps.
     n_defects : int, optional
-        Number of defects on CNT. Default is 10
-    length : int, optional
+        Number of defects on CNT. Default is 10.
+    CNT_length : int, optional
         Length of the CNT in nm, global constant as default.
     constants : 1D array
         kinetic constants in order of:
@@ -181,8 +182,8 @@ def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
     constants = np.zeros(7)
     constants[:4] = kin_const[:4]
     constants[-1] = kin_const[-1]
-    constants[4] = k_nothing_d(t_step, kin_const[:2])
-    constants[5] = k_nothing(t_step, kin_const[1::2])
+    constants[4] = k_nothing_d(t_step, *kin_const[:2])
+    constants[5] = k_nothing(t_step, *kin_const[1::2])
 
     # inital exciton is free in E11
     fate = 4
@@ -192,8 +193,8 @@ def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
     exciton_fate = np.zeros(len(constants)+1)
 
     # Inital position of the exciton and defects
-    pos_exc_0 = create_exciton(length)
-    defects = create_defects(length, n_defects)
+    pos_exc_0 = create_exciton(CNT_length)
+    defects = create_defects(CNT_length, n_defects)
 
     while fate > 3:
 
@@ -203,7 +204,7 @@ def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
                 2 * D_exc_nm_per_s * t_step * 1e-12)**0.5)
 
         # quenching of the exciton at tube end
-        if pos_exc_1 >= length:
+        if pos_exc_1 >= CNT_length:
             fate = 3
             exciton_fate[fate] += 1
             break
@@ -245,6 +246,3 @@ def exciton_walk(t_step, n_defects=10, length=L_nm, kin_const=KIN_CONST):
             pos_exc_0 += 1
 
     return exciton_fate
-
-
-# photons_fate(1000, exciton_walk, {'t_step': 1})
