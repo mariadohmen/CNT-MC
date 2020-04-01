@@ -133,7 +133,7 @@ def create_defects(CNT_length=L_nm, n_def=N_DEF):
         Positions in nm of the defects on the CNT stored in
         array size (n_def, 1)
     """
-    return np.random.randint(0, CNT_length, size=(n_def, 1))
+    return np.random.randint(0, CNT_length, size=n_def)
 
 
 def create_exciton(CNT_length=L_nm):
@@ -153,7 +153,6 @@ def create_exciton(CNT_length=L_nm):
 
 def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     """
-
     Parameters
     ----------
     t_step : float
@@ -170,13 +169,14 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     -------
     exciton_fate : 1D array
         Array contains the binned fate of the exciton for each MC step:
-        fate = 0 : E11 radiative decay
-        fate = 1 : E11* radiative decay
-        fate = 2 : E11 non-radiative decay
-        fate = 3 : E11* non-radiative decay
-        fate = 4 : Free diffusion walk
-        fate = 5 : Exciton stays in trap
-        fate = 6 : Exciton becomes trapped
+        fate = 0 : E11* radiative decay
+        fate = 1 : E11 radiative decay
+        fate = 2 : E11* non-radiative decay
+        fate = 3 : E11 non-radiative decay
+        fate = 4 : Exciton stays in trap
+        fate = 5 : Free diffusion walk
+        fate = 6 : Thermal escape
+        fate = 7 : Exciton becomes trapped
     """
 
     constants = np.zeros(7)
@@ -186,7 +186,7 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     constants[5] = k_nothing(t_step, *kin_const[1::2])
 
     # inital exciton is free in E11
-    fate = 4
+    fate = 5
     trapped = 0
 
     # Initiate matrix to store exciton fate
@@ -203,19 +203,21 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
             pos_exc_1 = round(pos_exc_0 + (
                 2 * D_exc_nm_per_s * t_step * 1e-12)**0.5)
 
+        # check if exciton became trapped
+        if trapped == 0:
+            pathway = np.arange(pos_exc_0, pos_exc_1)
+            if np.in1d(pathway, defects).any():
+                # set exciton to position of first encountered trap
+                pos_exc_1 = defects[np.in1d(defects, pathway)][0]
+                trapped = 1
+                fate = 7
+                exciton_fate[fate] += 1
+
         # quenching of the exciton at tube end
         if pos_exc_1 >= CNT_length:
             fate = 3
             exciton_fate[fate] += 1
             break
-
-        # check if exciton became trapped
-        if trapped == 0:
-            pathway = np.arange(pos_exc_1-pos_exc_0)
-            if np.in1d(pathway, defects).any():
-                trapped = 1
-                fate = 7
-                exciton_fate[fate] += 1
 
         # fate of a trapped exciton
         if trapped == 1:
@@ -242,7 +244,125 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
 
         # set position to new starting position
         pos_exc_0 = pos_exc_1
-        if fate == 7:
-            pos_exc_0 += 1
+        if fate == 6:
+            pos_exc_0 += 2
+
+    return exciton_fate
+
+
+def exciton_simulation(t_step, kin_const, n_defects=10, CNT_length=L_nm,
+                       r_exc_nm=R_nm):
+    """
+    Parameters
+    ----------
+    t_step : float
+        Timestep in ps.
+    constants : 1D array
+        kinetic constants in order of:
+        [k_d_r_per_s, k_r_per_s, k_d_nr_per_s, k_nr_per_s, k_dt_per_s]
+    n_defects : int, optional
+        Number of defects on CNT. Default is 10.
+    CNT_length : int, optional
+        Length of the CNT in nm, global constant as default.
+    r_exc_nm : int
+        Radius of the Exciton in nm
+
+    Returns
+    -------
+    exciton_fate : 1D array
+        Array contains the binned fate of the exciton for each MC step:
+        fate = 0 : E11* radiative decay
+        fate = 1 : E11 radiative decay
+        fate = 2 : E11* non-radiative decay
+        fate = 3 : E11 non-radiative decay
+        fate = 4 : Exciton stays in trap
+        fate = 5 : Free diffusion walk
+        fate = 6 : Thermal escape
+        fate = 7 : Exciton becomes trapped
+    """
+
+    constants = np.zeros(7)
+    constants[:4] = kin_const[:4]
+    constants[-1] = kin_const[-1]
+    constants[4] = k_nothing_d(t_step, *kin_const[:2])
+    constants[5] = k_nothing(t_step, *kin_const[1::2])
+
+    # inital exciton is free in E11
+    fate = 4
+    trapped = 0
+
+    # Initiate matrix to store exciton fate
+    exciton_fate = np.zeros(len(constants)+1)
+
+    # Inital position of the exciton and defects
+    pos_exc_0 = create_exciton(CNT_length)
+    defects = create_defects(CNT_length, n_defects)
+
+    # Masks defects which are too close together and result in non-radiative
+    # decay
+    defects = np.sort(defects)
+    mask = [defects[1]-defects[0] >= r_exc_nm]
+    mask.extend([True if defects[i+1]-defects[i] >= r_exc_nm
+                 and defects[i]-defects[i-1] >= r_exc_nm
+                 else False for i in np.arange(1, len(defects)-1)])
+    mask.extend([defects[-1]-defects[-2] >= r_exc_nm])
+
+    while fate > 3:
+
+        # step if exciton is free
+        if trapped == 0:
+            pos_exc_1 = round(pos_exc_0 + (
+                2 * D_exc_nm_per_s * t_step * 1e-12)**0.5)
+
+
+        # check if exciton became trapped
+        if trapped == 0:
+            pathway = np.arange(pos_exc_0, pos_exc_1)
+            if np.in1d(pathway, defects).any():
+                # set exciton to position of first encountered trap
+                pos_exc_1 = defects[np.in1d(defects, pathway)][0]
+                # check if non-radiative decay takes plase
+                if np.in1d(defects[mask], pos_exc_1).any():
+                    trapped = 1
+                    fate = 7
+                    exciton_fate[fate] += 1
+                else:
+                    fate = 2
+                    exciton_fate[fate] += 1
+                    break
+
+        # quenching of the exciton at tube end
+        if pos_exc_1 >= CNT_length:
+            fate = 2
+            exciton_fate[fate] += 1
+            break
+                
+        # fate of a trapped exciton
+        if trapped == 1:
+            # calculate probability for fate of trapped exciton
+            p_fate = np.array([e * random.uniform(0, 1)
+                               for e in constants[::2]])
+            # Store result for highest probability
+            fate = 2*p_fate.argmax()
+            exciton_fate[fate] += 1
+            if fate == 6:
+                pos_exc_1 += r_exc_nm
+
+        # fate of freely diffusing exciton
+        else:
+            # calculate probability for fate of free exciton
+            p_fate = np.array([e * random.uniform(0, 1)
+                               for e in constants[1::2]])
+            # Store result for highest probability
+            fate = (p_fate.argmax() * 2 + 1)
+            exciton_fate[fate] += 1
+
+        # insurance that there won't be an endless loop
+        if exciton_fate.sum() > 1e6:
+            print('Simulation exceeds 1e6 steps, loop aborded')
+            return exciton_fate
+
+        # set position to new starting position
+        pos_exc_0 = pos_exc_1
 
     return exciton_fate
