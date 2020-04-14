@@ -22,4 +22,4 @@ from scipy.constants import R
 
 sys.path.append('../CNT-SIM/')
 from CNTSimFile import CNTSimFile
-from mc_sim import exciton_walk
+from mc_sim import exciton_walk, exciton_simulation

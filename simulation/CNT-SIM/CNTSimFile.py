@@ -6,6 +6,8 @@ Created on Fri Mar 27 16:54:43 2020
 """
 
 import h5py
+import datetime
+import time
 import numpy as np
 from warnings import warn
 
@@ -21,6 +23,7 @@ class CNTSimFile:
         self.QY = None
         self.calc_dict = dict()
         self.n_defects = None
+        self.notebook_output=False
         if Path(filepath).is_file():
             self.load()
             warn("File already exists, kinetic constants ingored.")
@@ -100,7 +103,7 @@ class CNTSimFile:
         quantum_yield = photons_fate[:2] / n_photons
         return photons_fate, quantum_yield
 
-    def defect_dependance(self, n_photons, func, n_defects, **func_kwargs):
+    def defect_dependance(self, n_photons, func, n_defects, func_kwargs={}):
         """
         Calculates the dependance of the quantum yield on the number of
         defects.
@@ -124,6 +127,9 @@ class CNTSimFile:
         calc_dict : dict
             Updates information in the calc_dict object.
         """
+        print(datetime.datetime.now())
+        start = time.time()
+        
         self.calc_dict['n_defects'] = n_defects
 
         self.calc_dict = {**self.calc_dict, **func_kwargs}
@@ -133,7 +139,7 @@ class CNTSimFile:
                                   {'n_defects': n_def, **func_kwargs})
 
     def length_dependance(self, n_photons, func, CNT_length, defect_density,
-                          **func_kwargs):
+                          func_kwargs={}):
         """
         Calculates the dependance of the quantum yield on the number of
         defects.
@@ -158,6 +164,9 @@ class CNTSimFile:
         calc_dict : dict
             Updates information in the calc_dict object.
         """
+        print(datetime.datetime.now())
+        start = time.time()
+        
         self.calc_dict['CNT_length'] = CNT_length
         self.calc_dict['defect_density'] = defect_density
         self.calc_dict = {**self.calc_dict, **func_kwargs}
@@ -169,3 +178,8 @@ class CNTSimFile:
                       {'n_defects': int(self.n_defects[i]), 'CNT_length': l_nm,
                        **func_kwargs})
         self.calc_dict['n_defects'] = self.n_defects
+        
+        end = time.time()
+        elapsed = end - start
+        print(datetime.datetime.now())
+        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))

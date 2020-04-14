@@ -13,8 +13,16 @@ from ipywidgets.widgets import Text
 
 from scipy.constants import Boltzmann as kB
 
+
+# Quantum Yields https://doi.org/10.1021/acs.jpclett.8b03732
+QY_E11_d = np.range(0.1,0.28)
+QY_E11 < 0.1
+
 L_nm = 300  # length of the nanotube
-R_nm = 1  # radius of the exiton
+
+# https://doi.org/10.1038/nphys1149
+R_nm = 2  # radius of the exiton
+
 N_DEF = 10  # number of defects per nanotube
 T_STEP_ps = 1  # time step
 
@@ -96,8 +104,12 @@ def photons_fate(n_photons, func, func_kwargs={}):
 # termal detrapping 10.1021/acs.jpclett.8b03732
 k_dt_per_s = 0.5 * (1e12 / 385 + 1e12 / 1132) + 0.1e12 * np.exp(-1.6182e-11 /
                                                                 (kB * 300))
+# https://doi.org/10.1021/nn101612b
+TAU_ps = 10
 
-TAU_ps = 100
+# https://doi.org/10.1103/PhysRevX.9.041048
+TAU_ps = 70
+
 TAU_d_ps = 1000
 
 k_r_per_s = 1.5e10  # constant for radiativ decay from E11
@@ -301,11 +313,14 @@ def exciton_simulation(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     # Masks defects which are too close together and result in non-radiative
     # decay
     defects = np.sort(defects)
-    mask = [defects[1]-defects[0] >= r_exc_nm]
-    mask.extend([True if defects[i+1]-defects[i] >= r_exc_nm
-                 and defects[i]-defects[i-1] >= r_exc_nm
-                 else False for i in np.arange(1, len(defects)-1)])
-    mask.extend([defects[-1]-defects[-2] >= r_exc_nm])
+    if len(defects) >2:
+        mask = [defects[1]-defects[0] >= r_exc_nm]
+        mask.extend([True if defects[i+1]-defects[i] >= r_exc_nm
+                     and defects[i]-defects[i-1] >= r_exc_nm
+                     else False for i in np.arange(1, len(defects)-1)])
+        mask.extend([defects[-1]-defects[-2] >= r_exc_nm])
+    else:
+        mask = np.ones(len(defects), dtype=bool)
 
     while fate > 3:
 
