@@ -28,7 +28,7 @@ class CNTSimFile:
             self.load()
             warn("File already exists, kinetic constants ingored.")
             print('Existing file loaded successfully.')
-            
+
     def __str__(self):
         return self.filepath
 
@@ -91,12 +91,12 @@ class CNTSimFile:
 
         self.calc_dict['n_photons'] = n_photons
         # initiate matrix size
-        photons_fate = func(kin_const = self.kin_const, **func_kwargs)
+        photons_fate = func(kin_const=self.kin_const, **func_kwargs)
         info.value = f"Processing photon (1/ {n_photons})"
 
         # loop for the desired number of photons
         for p in np.arange(n_photons-1):
-            photons_fate += func(kin_const = self.kin_const, **func_kwargs)
+            photons_fate += func(kin_const=self.kin_const, **func_kwargs)
             info.value = f"Processing photon ({p+2}/ {n_photons})"
 
         # calculate the quantum yield
@@ -129,14 +129,22 @@ class CNTSimFile:
         """
         print(datetime.datetime.now())
         start = time.time()
-        
+
         self.calc_dict['n_defects'] = n_defects
 
         self.calc_dict = {**self.calc_dict, **func_kwargs}
         self.QY = np.zeros((len(n_defects), 2))
+        p_fate, _ = self.photons_fate(1, func, {'n_defects': 0, **func_kwargs})
+        self.p_fate = np.zeros((len(n_defects)), np.size(p_fate))
+
         for i, n_def in enumerate(n_defects):
-            _, self.QY[i, :] = self.photons_fate(n_photons, func,
-                                  {'n_defects': n_def, **func_kwargs})
+            self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
+                    n_photons, func, {'n_defects': n_def, **func_kwargs})
+
+        end = time.time()
+        elapsed = end - start
+        print(datetime.datetime.now())
+        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
 
     def length_dependance(self, n_photons, func, CNT_length, defect_density,
                           func_kwargs={}):
@@ -166,19 +174,25 @@ class CNTSimFile:
         """
         print(datetime.datetime.now())
         start = time.time()
-        
+
         self.calc_dict['CNT_length'] = CNT_length
         self.calc_dict['defect_density'] = defect_density
         self.calc_dict = {**self.calc_dict, **func_kwargs}
         self.n_defects = np.zeros(len(CNT_length))
         self.QY = np.zeros((len(self.n_defects), 2))
+        p_fate, _ = self.photons_fate(1, func, {'n_defects': 0,
+                                                'CNT_length': 300,
+                                                **func_kwargs})
+        self.p_fate = np.zeros((len(self.n_defects)), np.size(p_fate))
+
         for i, l_nm in enumerate(CNT_length):
             self.n_defects[i] = round(l_nm/defect_density)
-            _, self.QY[i, :] = self.photons_fate(n_photons, func,
-                      {'n_defects': int(self.n_defects[i]), 'CNT_length': l_nm,
-                       **func_kwargs})
+            self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
+                    n_photons, func,
+                    {'n_defects': int(self.n_defects[i]), 'CNT_length': l_nm,
+                     **func_kwargs})
         self.calc_dict['n_defects'] = self.n_defects
-        
+
         end = time.time()
         elapsed = end - start
         print(datetime.datetime.now())
