@@ -583,7 +583,7 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     return exciton_fate
 
 
-def k_nothing_b_2(t_step, k_br, k_bnr, k_bd, k_be, tau_b):
+def k_nothing_b_2(t_step, k_br, k_bnr, k_bd, k_be, tau_b=TAU_b_ps):
     return (k_bd + k_bnr + k_br + k_be) * tau_b / t_step
 
 

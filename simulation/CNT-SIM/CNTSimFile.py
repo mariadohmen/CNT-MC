@@ -21,6 +21,7 @@ class CNTSimFile:
         self.filepath = filepath
         self.kin_const = kin_const
         self.QY = None
+        self.p_fate = None
         self.calc_dict = dict()
         self.n_defects = None
         self.notebook_output=False
@@ -42,6 +43,10 @@ class CNTSimFile:
         data = h5py.File(self.filepath)
         self.kin_const = data['kin_const'][:]
         self.QY = data['QY'][:]
+        try:
+            self.p_fate = data['p_fate'][:]
+        except KeyError:
+            warn('no p_fate key in file')
         self.calc_dict = {k: v for k, v in data['dict'].attrs.items()}
         data.close()
 
@@ -57,6 +62,9 @@ class CNTSimFile:
                                      data=self.kin_const, dtype=np.float32)
             hdf5_file.create_dataset('QY', compression='gzip',
                                      data=self.QY,
+                                     dtype=np.float32)
+            hdf5_file.create_dataset('p_fate', compression='gzip',
+                                     data=self.p_fate,
                                      dtype=np.float32)
             grp = hdf5_file.create_group('dict', )
             for key, value in self.calc_dict.items():
@@ -135,7 +143,7 @@ class CNTSimFile:
         self.calc_dict = {**self.calc_dict, **func_kwargs}
         self.QY = np.zeros((len(n_defects), 2))
         p_fate, _ = self.photons_fate(1, func, {'n_defects': 0, **func_kwargs})
-        self.p_fate = np.zeros((len(n_defects)), np.size(p_fate))
+        self.p_fate = np.zeros((len(n_defects), np.size(p_fate)))
 
         for i, n_def in enumerate(n_defects):
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
@@ -183,7 +191,7 @@ class CNTSimFile:
         p_fate, _ = self.photons_fate(1, func, {'n_defects': 0,
                                                 'CNT_length': 300,
                                                 **func_kwargs})
-        self.p_fate = np.zeros((len(self.n_defects)), np.size(p_fate))
+        self.p_fate = np.zeros((len(self.n_defects), np.size(p_fate)))
 
         for i, l_nm in enumerate(CNT_length):
             self.n_defects[i] = round(l_nm/defect_density)
