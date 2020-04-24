@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 27 16:54:43 2020
+Created on Fri Apr 24 12:05:22 2020
 
 @author: Maria
 """
@@ -12,7 +12,6 @@ import numpy as np
 from warnings import warn
 
 from pathlib import Path
-from ipywidgets.widgets import Text
 
 
 class CNTSimFile:
@@ -101,16 +100,11 @@ class CNTSimFile:
         self.calc_dict['n_photons'] = n_photons
         # initiate matrix size
         photons_fate = func(kin_const=self.kin_const, **func_kwargs)
-        if self.notebook_output is True:
-            info = Text()
-            display(info)
-            info.value = f"Processing photon (1/ {n_photons})"
 
         # loop for the desired number of photons
         for p in np.arange(n_photons-1):
             photons_fate += func(kin_const=self.kin_const, **func_kwargs)
             if self.notebook_output is True:
-                info.value = f"Processing photon ({p+2}/ {n_photons})"
 
         # calculate the quantum yield
         quantum_yield = photons_fate[:2] / n_photons

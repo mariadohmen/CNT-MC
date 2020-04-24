@@ -9,8 +9,6 @@ import random
 
 import numpy as np
 
-from ipywidgets.widgets import Text
-
 from scipy.constants import Boltzmann as kB
 
 
@@ -61,44 +59,6 @@ def exciton_fate():
             print('Simulation exceeds 1e3 steps, loop aborded')
             return exciton_fate
     return exciton_fate
-
-
-def photons_fate(n_photons, func, func_kwargs={}):
-    """Simulate the fate of numerous photons.
-    For a key to the fate look a the respective exciton fate function.
-
-    Parameters
-    ----------
-    n_photons : int
-        Number of photons to be used in the simulation.
-    func : callable
-        Function to perform MC simulation of a single exciton.
-    func_kwargs: dict
-        Dictionary containing the arguments and keyword arguments for
-        func.
-
-    Returns
-    -------
-    photons_fate : 1D array
-        Binnend fate of the photons in simulation.
-    quantum_yield : 1D array
-        Quantum yield of the non-radiative and radiative decay."""
-    info = Text()
-    display(info)
-
-    # initiate matrix size
-    photons_fate = func(**func_kwargs)
-    info.value = f"Processing photon (1/ {n_photons})"
-
-    # loop for the desired number of photons
-    for p in np.arange(n_photons-1):
-        photons_fate += func(**func_kwargs)
-        info.value = f"Processing photon ({p+2}/ {n_photons})"
-
-    # calculate the quantum yield
-    quantum_yield = photons_fate[:2] / n_photons
-
-    return photons_fate, quantum_yield
 
 
 # termal detrapping 10.1021/acs.jpclett.8b03732
@@ -436,6 +396,7 @@ def k_nothing_b(t_step, k_br=k_br_per_s, k_bnr=k_bnr_per_s, k_bd=k_bd_per_s,
 # KIN_CONST = np.array([k_br_per_s, k_er_per_s, k_bnr_per_s, k_enr_per_s,
 #                       k_bd_per_s, k_ed_per_s, k_de_per_s])
 
+'''
 def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
                         r_exc_nm=R_nm):
     """
@@ -482,7 +443,7 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     constants[-2] = kin_const[-1]
     constants[6] = k_nothing_b(t_step, *kin_const[:6:2])
     constants[7] = k_nothing_e(t_step, *kin_const[1:6:2])
-    constants[-1] = k_nothing_e(t_step, kin_const[-1])
+    constants[-1] = k_nothing_d(t_step, kin_const[-1])
 
     # inital exciton is free in S11
     fate = 7
@@ -581,10 +542,166 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
         pos_exc_0 = pos_exc_1
 
     return exciton_fate
+'''
 
 
 def k_nothing_b_2(t_step, k_br, k_bnr, k_bd, k_be, tau_b=TAU_b_ps):
     return (k_bd + k_bnr + k_br + k_be) * tau_b / t_step
+
+
+def k_nothing_d_2(t_step, k_de, k_dnr, tau_d=TAU_d_ps):
+    return (k_de + k_dnr) * tau_d / t_step
+
+
+def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
+                        r_exc_nm=R_nm):
+    """
+    Simulation with three states above ground state: Excited state S11 (0),
+    dark state (1) and bright state S11* (2). Diffusion along the nanotube is
+    allowed for state 0 & 1. Exchange is possible between 0 & 1 and 1 & 2. The
+    transition into the trap from 1 to 2 is modeled with MC steps, thermal
+    detrapping is possible. Excitons are quenched if defects are too close
+    together.
+
+    Parameters
+    ----------
+    t_step : float
+        Timestep in ps.
+    constants : 1D array
+        kinetic constants in order of:
+        [k_br, k_er, k_bnr, k_enr, k_bd, k_ed, k_de, k_dnr]
+    n_defects : int, optional
+        Number of defects on CNT. Default is 10.
+    CNT_length : int, optional
+        Length of the CNT in nm, global constant as default.
+    r_exc_nm : int
+        Radius of the Exciton in nm
+
+    Returns
+    -------
+    exciton_fate : 1D array
+        Array contains the binned fate of the exciton for each MC step:
+            Array contains the binned fate of the exciton for each MC step:
+            fate = 0 : E11* radiative decay (2)
+            fate = 1 : E11 radiative decay (0)
+            fate = 2 : E11* non-radiative decay (2)
+            fate = 3 : E11 non-radiative decay (0)
+            fate = 4 : Exciton escapes trap into dark state (1)
+            fate = 5 : Exciton goes into dark state (1)
+            fate = 6 : Exciton stays in bright state (2)
+            fate = 7 : Free exciton diffusion (0 & 1)
+            fate = 8 : Exciton goes into excited state (0)
+            fate = 9 : Exciton becomes trapped in bright state (2)
+    """
+
+    constants = np.zeros(10)
+    constants[:6] = kin_const[:6]
+    constants[-3:] = kin_const[-2:]
+    constants[6] = k_nothing_b(t_step, *kin_const[:6:2])
+    constants[7] = k_nothing_e(t_step, *kin_const[1:6:2])
+    constants[-1] = k_nothing_d_2(t_step, *kin_const[-2:])
+
+    # inital exciton is free in S11
+    fate = 7
+    state = 0
+
+    # Initiate matrix to store exciton fate
+    exciton_fate = np.zeros(len(constants))
+
+    # Inital position of the exciton and defects
+    pos_exc_0 = create_exciton(CNT_length)
+    defects = create_defects(CNT_length, n_defects)
+
+    # Masks defects which are too close together and result in non-radiative
+    # decay, True for all defects which are sufficently enough apart
+    defects = np.sort(defects)
+    if len(defects) > 2:
+        mask = [defects[1]-defects[0] > r_exc_nm]
+        mask.extend([True if defects[i+1]-defects[i] > r_exc_nm
+                     and defects[i]-defects[i-1] > r_exc_nm
+                     else False for i in np.arange(1, len(defects)-1)])
+        mask.extend([defects[-1]-defects[-2] > r_exc_nm])
+    else:
+        mask = np.ones(len(defects), dtype=bool)
+
+    while fate > 3:
+
+        # step if exciton is free
+        if state != 2:
+            pos_exc_1 = round(pos_exc_0 + (
+                2 * D_exc_nm_per_s * t_step * 1e-12)**0.5)
+
+        # check if exciton became trapped
+        if state == 1:
+            pathway = np.arange(pos_exc_0, pos_exc_1)
+            if np.in1d(pathway, defects).any():
+                # set exciton to position of first encountered trap
+                pos_exc_1 = defects[np.in1d(defects, pathway)][0]
+                # check if non-radiative decay takes place
+                if np.in1d(defects[mask], pos_exc_1).any():
+                    fate = 9
+                    state = 2
+                    exciton_fate[fate] += 1
+                else:
+                    fate = 2
+                    exciton_fate[fate] += 1
+                    break
+
+        # quenching of the exciton at tube end
+        if pos_exc_1 >= CNT_length:
+            fate = 3
+            exciton_fate[fate] += 1
+            break
+
+        # fate of a trapped S11* exciton
+        if state == 2:
+            # calculate probability for fate of trapped exciton
+            p_fate = np.array([e * random.uniform(0, 1)
+                               for e in constants[:8:2]])
+            # Store result for highest probability
+            fate = 2*p_fate.argmax()
+            exciton_fate[fate] += 1
+            # if exciton escpaes move along, set state
+            if fate == 4:
+                state = 1
+                pos_exc_1 += r_exc_nm
+
+        # fate of S11 exciton
+        elif state == 0:
+            # calculate probability for fate of S11 exciton
+            p_fate = np.array([e * random.uniform(0, 1)
+                               for e in constants[1:8:2]])
+            # Store result for highest probability
+            fate = (p_fate.argmax() * 2 + 1)
+            exciton_fate[fate] += 1
+            if fate == 5:
+                state = 1
+
+        # fate of dark exciton
+        else:
+            p_fate = np.array([e * random.uniform(0, 1)
+                               for e in constants[8:]])
+            p_fate_max = p_fate.argmax()
+            if p_fate_max == 0:
+                fate = 8
+                exciton_fate[fate] += 1
+                state = 0
+            elif p_fate_max == 1:
+                fate = 1
+                exciton_fate[fate] += 1
+            else:
+                fate = 7
+                exciton_fate[fate] += 1
+
+        # insurance that there won't be an endless loop
+        if exciton_fate.sum() > 1e6:
+            print('Simulation exceeds 1e6 steps, loop aborded')
+            return exciton_fate
+
+        # set position to new starting position
+        pos_exc_0 = pos_exc_1
+
+    return exciton_fate
 
 
 def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=10,
