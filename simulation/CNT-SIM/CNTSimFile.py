@@ -96,7 +96,7 @@ class CNTSimFile:
             Quantum yield of the E11 and E11* radiative decay."""
 
         print('start of exiton simulation:', datetime.datetime.now())
-        start = time.time()
+        start_p = time.time()
 
         self.calc_dict['n_photons'] = n_photons
         # initiate matrix size
@@ -116,7 +116,7 @@ class CNTSimFile:
         quantum_yield = photons_fate[:2] / n_photons
 
         end = time.time()
-        elapsed = end - start
+        elapsed= end - start_p
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         return photons_fate, quantum_yield

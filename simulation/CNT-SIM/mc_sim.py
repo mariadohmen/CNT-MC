@@ -596,7 +596,7 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
 
     constants = np.zeros(10)
     constants[:6] = kin_const[:6]
-    constants[-3:] = kin_const[-2:]
+    constants[-3:-1] = kin_const[-2:]
     constants[6] = k_nothing_b(t_step, *kin_const[:6:2])
     constants[7] = k_nothing_e(t_step, *kin_const[1:6:2])
     constants[-1] = k_nothing_d_2(t_step, *kin_const[-2:])
