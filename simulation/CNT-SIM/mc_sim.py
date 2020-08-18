@@ -55,8 +55,8 @@ def k_nothing_e(t_step, n_defects, k_er, k_enr, k_ed, tau_e=TAU_e_ps):
     return (k_er + k_enr + k_ed) * tau_func(n_defects, tau_e) / t_step
 
 
-def k_nothing_b(t_step, n_defects, k_br, k_bnr, k_bd, k_be, tau_b=TAU_b_ps):
-    return (k_bd + k_bnr + k_br + k_be) * tau_func(n_defects, tau_b) / t_step
+def k_nothing_b(t_step, n_defects, k_br, k_bnr, k_be, tau_b=TAU_b_ps):
+    return (k_bnr + k_br + k_be) * tau_func(n_defects, tau_b) / t_step
 
 
 def k_nothing_d(t_step, n_defects, k_de, k_dnr, tau_d=TAU_d_ps):
@@ -145,7 +145,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
     constants[6] = k_nothing_b(t_step, n_defects, *kin_const[:6:2])
     constants[7] = k_nothing_e(t_step, n_defects, *kin_const[1:7:2])
     constants[-1] = kin_const[6]
-    constants[8] = k_nothing_d(t_step, n_defects, kin_const[-1])
+    constants[8] = k_nothing_d(t_step, n_defects, *kin_const[-2:])
 
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state

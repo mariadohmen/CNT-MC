@@ -2,6 +2,7 @@
 .venv
 tmp/*
 *.pyc
+simulation/sim_output/*
 __pycache__
 .ropeproject/
 
