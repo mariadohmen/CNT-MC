@@ -150,8 +150,9 @@ class CNTSimFile:
         start = time.time()
 
         self.calc_dict['n_defects'] = n_defects
-
+        self.calc_dict.update(func_kwargs)
         self.calc_dict = {**self.calc_dict, **func_kwargs}
+
         self.QY = np.zeros((len(n_defects), 2))
         p_fate, _ = self.photons_fate(1, func, {'n_defects': 0, **func_kwargs})
         self.p_fate = np.zeros((len(n_defects), np.size(p_fate)))
@@ -198,6 +199,7 @@ class CNTSimFile:
         self.calc_dict['CNT_length'] = CNT_length
         self.calc_dict['defect_density'] = defect_density
         self.calc_dict = {**self.calc_dict, **func_kwargs}
+
         self.n_defects = np.zeros(len(CNT_length))
         self.QY = np.zeros((len(self.n_defects), 2))
         p_fate, _ = self.photons_fate(1, func, {'n_defects': 0,
@@ -219,7 +221,7 @@ class CNTSimFile:
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
 
-    def diffusion_dependence(self, n_photons, func, defect_density,
+    def diffusion_dependence(self, n_photons, func,
                              diff_dependence, func_kwargs={}):
         """
         Calculates the dependance of the quantum yield on the number of
@@ -232,8 +234,10 @@ class CNTSimFile:
         func : callable
             Function which returns the quantum yield. Also needs to take
             the following arguments:
-       defect_density : float
-            Average between two defects in nm.
+        Diff_exc_e : float
+            Diffusion constant for excited exciton, global constant as default
+        Diff_exc_d : float
+            Diffusion constant for dark exciton, global constant as default
         diff_dependence : array
             2D numpy array [0, :] is for diffusion constant of the exited
             state and [1, :] contains the diffusion constants for the dark
@@ -248,3 +252,29 @@ class CNTSimFile:
             Updates information in the calc_dict object.
         """
         print('To be implemented')
+        print('start of calculation:', datetime.datetime.now())
+        start = time.time()
+
+        self.calc_dict = {**self.calc_dict, **func_kwargs}
+        self.diff_speed = diff_dependence
+
+        self.QY = np.zeros((self.diff_dependence.shape[1], 2))
+
+        p_fate, _ = self.photons_fate(1, func, {**func_kwargs})
+        self.p_fate = np.zeros((self.diff_dependence.shape[1],
+                                np.size(p_fate)))
+
+        for i in diff_dependence.shape[1]):
+            print(f'exciton processed(({i}/ diff_dependence.shape[1]))')
+
+            self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
+                    n_photons, func,
+                    {Diff_exc_e=diff_dependence[0, i],
+                     Diff_exc_d=diff_dependence[1, i]
+                     **func_kwargs})
+        end = time.time()
+        elapsed = end - start
+        print(datetime.datetime.now())
+        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+
+        
