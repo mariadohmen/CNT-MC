@@ -17,6 +17,7 @@ from ipywidgets.widgets import Text
 
 class CNTSimFile:
     """Class which allows MC simulation of a random exciton walk"""
+    
     def __init__(self, filepath, kin_const):
         self.filepath = filepath
         self.kin_const = kin_const
@@ -116,12 +117,12 @@ class CNTSimFile:
         quantum_yield = photons_fate[:2] / n_photons
 
         end = time.time()
-        elapsed= end - start_p
+        elapsed = end - start_p
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         return photons_fate, quantum_yield
 
-    def defect_dependance(self, n_photons, func, n_defects, func_kwargs={}):
+    def defect_dependence(self, n_photons, func, n_defects, func_kwargs={}):
         """
         Calculates the dependance of the quantum yield on the number of
         defects.
@@ -165,10 +166,10 @@ class CNTSimFile:
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
 
-    def length_dependance(self, n_photons, func, CNT_length, defect_density,
+    def length_dependence(self, n_photons, func, CNT_length, defect_density,
                           func_kwargs={}):
         """
-        Calculates the dependance of the quantum yield on the number of
+        Calculates the dependence of the quantum yield on the number of
         defects.
 
         Parameters
@@ -217,3 +218,33 @@ class CNTSimFile:
         elapsed = end - start
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+
+    def diffusion_dependence(self, n_photons, func, defect_density,
+                             diff_dependence, func_kwargs={}):
+        """
+        Calculates the dependance of the quantum yield on the number of
+        defects.
+
+        Parameters
+        ----------
+        n_photons : int
+            Number of photons used to calculate a single QY value.
+        func : callable
+            Function which returns the quantum yield. Also needs to take
+            the following arguments:
+       defect_density : float
+            Average between two defects in nm.
+        diff_dependence : array
+            2D numpy array [0, :] is for diffusion constant of the exited
+            state and [1, :] contains the diffusion constants for the dark
+            state
+
+        Returns
+        -------
+        QY : 2D array
+            Array of quantum yields at different defect density in
+            QY object.
+        calc_dict : dict
+            Updates information in the calc_dict object.
+        """
+        print('To be implemented')
