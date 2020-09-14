@@ -9,6 +9,7 @@ import h5py
 import datetime
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 from warnings import warn
 
 from pathlib import Path
@@ -122,7 +123,8 @@ class CNTSimFile:
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         return photons_fate, quantum_yield
 
-    def defect_dependence(self, n_photons, func, n_defects, func_kwargs={}):
+    def defect_dependence(self, n_photons, func, n_defects, func_kwargs={},
+                          plot=False):
         """
         Calculates the dependance of the quantum yield on the number of
         defects.
@@ -166,9 +168,20 @@ class CNTSimFile:
         elapsed = end - start
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        if plot is True:
+            fig = plt.subplot()
+            plt.plot(self.calc_dict['n_defects'], self.QY[:, 0] * 100,
+                     label='E11')
+            plt.plot(self.calc_dict['n_defects'], self.QY[:, 1] * 100,
+                     label='E11*')
+            plt.xlabel('number of defects')
+            plt.ylabel('quantum yield / %')
+            plt.title('Defect dependence, l = {} nm'.format(
+                      self.calc_dict['CNT_length']))
+            return fig
 
     def length_dependence(self, n_photons, func, CNT_length, defect_density,
-                          func_kwargs={}):
+                          func_kwargs={}, plot=False):
         """
         Calculates the dependence of the quantum yield on the number of
         defects.
@@ -220,9 +233,20 @@ class CNTSimFile:
         elapsed = end - start
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        if plot is True:
+            fig = plt.subplot()
+            plt.plot(self.calc_dict['CNT_length'], self.QY[:, 0] * 100,
+                     label='E11')
+            plt.plot(self.calc_dict['CNT_length'], self.QY[:, 1] * 100,
+                     label='E11*')
+            plt.xlabel('length of the nanotube')
+            plt.ylabel('quantum yield / %')
+            plt.title('lenght dependence, defect distance = {} nm'.format(
+                      self.calc_dict['defect_density']))
+            return fig
 
-    def diffusion_dependence(self, n_photons, func,
-                             diff_dependence, func_kwargs={}):
+    def diffusion_dependence(self, n_photons, func, diff_const, func_kwargs={},
+                             plot=False):
         """
         Calculates the dependance of the quantum yield on the number of
         defects.
@@ -238,7 +262,7 @@ class CNTSimFile:
             Diffusion constant for excited exciton, global constant as default
         Diff_exc_d : float
             Diffusion constant for dark exciton, global constant as default
-        diff_dependence : array
+        diff_const : array
             2D numpy array [0, :] is for diffusion constant of the exited
             state and [1, :] contains the diffusion constants for the dark
             state
@@ -256,7 +280,7 @@ class CNTSimFile:
         start = time.time()
 
         self.calc_dict = {**self.calc_dict, **func_kwargs}
-        self.diff_speed = diff_dependence
+        self.calc_dict['Diff_const'] = diff_const
 
         self.QY = np.zeros((self.diff_dependence.shape[1], 2))
 
@@ -264,17 +288,26 @@ class CNTSimFile:
         self.p_fate = np.zeros((self.diff_dependence.shape[1],
                                 np.size(p_fate)))
 
-        for i in diff_dependence.shape[1]):
+        for i in np.arange(diff_const.shape[1]):
             print(f'exciton processed(({i}/ diff_dependence.shape[1]))')
 
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
                     n_photons, func,
-                    {Diff_exc_e=diff_dependence[0, i],
-                     Diff_exc_d=diff_dependence[1, i]
+                    {'Diff_exc_e': diff_const[0, i],
+                     'Diff_exc_d': diff_const[1, i],
                      **func_kwargs})
         end = time.time()
         elapsed = end - start
         print(datetime.datetime.now())
         print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
-
-        
+        if plot is True:
+            fig, axes = plt.subplots(nrows=1, ncols=2)
+            axes[0].plot(self.calc_dict['Diff_const'][0, :],
+                         self.QY[:, 0] * 100, label='E11')
+            axes[0].plot(self.calc_dict['Diff_const'][0, :],
+                         self.QY[:, 1] * 100, label='E11*')
+            plt.xlabel('diff_exc_e / nm s$^{-1}$')
+            plt.ylabel('quantum yield / %')
+            plt.title('diffusion constant dependence, defect distance = {} nm, l = {} nm'.format(
+                      self.calc_dict['defect_density'],
+                      self.calc_dict['CNT_length']))

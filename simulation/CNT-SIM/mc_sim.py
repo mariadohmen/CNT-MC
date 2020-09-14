@@ -24,7 +24,7 @@ R_nm = 2  # radius of the exiton
 N_DEF = 10  # number of defects per nanotube
 T_STEP_ps = 1  # time step
 
-# Exciton Diffusion Coefficient https://doi.org/10.1021/nn101612b
+# Bright exciton Diffusion Coefficient https://doi.org/10.1021/nn101612b
 D_e_exc_nm_per_s = 1.07e15
 
 # https://doi.org/10.1021/acsnano.6b02986
@@ -233,7 +233,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
         else:
             p_fate = np.array([e * random.uniform(0, 1)
                                for e in constants[8:]])
-            
+
             # Store result for highest probability
             fate = 7 + p_fate.argmax()
             exciton_fate[fate] += 1
@@ -252,6 +252,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
         pos_exc_0 = pos_exc_1
 
     return exciton_fate
+
 
 def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
                 Diff_exc_d=D_d_exc_nm_per_s, n_defects=N_DEF,
@@ -278,9 +279,9 @@ def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
     r_exc_nm : int
         Radius of the Exciton in nm
     Diff_exc_e : float
-        Diffusion constant for excited exciton, global constant as default
+        Diffusion constant for excited exciton, global constant as default.
     Diff_exc_d : float
-        Diffusion constant for dark exciton, global constant as default
+        Diffusion constant for dark exciton, global constant as default.
 
     Returns
     -------
@@ -311,7 +312,7 @@ def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state
     fate = 7
-    state = (np.random.random(1) < 0.8 ).astype(int)[0]
+    state = (np.random.random(1) < 0.8).astype(int)[0]
 
     # Initiate matrix to store exciton fate
     exciton_fate = np.zeros(len(constants))
@@ -394,7 +395,7 @@ def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
         else:
             p_fate = np.array([e * random.uniform(0, 1)
                                for e in constants[8:]])
-            
+
             # Store result for highest probability
             fate = 7 + p_fate.argmax()
             exciton_fate[fate] += 1
