@@ -9,6 +9,7 @@ import h5py
 import datetime
 import time
 import numpy as np
+import inspect
 import matplotlib.pyplot as plt
 from warnings import warn
 
@@ -18,13 +19,13 @@ from ipywidgets.widgets import Text
 
 class CNTSimFile:
     """Class which allows MC simulation of a random exciton walk"""
-    
+
     def __init__(self, filepath, kin_const):
         self.filepath = filepath
         self.kin_const = kin_const
         self.QY = None
         self.p_fate = None
-        self.calc_dict = dict()
+        self.calc_dict = {'date': datetime.datetime.now().strftime("%Y-%m-%d")}
         self.n_defects = None
         self.notebook_output = False
         if Path(filepath).is_file():
@@ -152,7 +153,8 @@ class CNTSimFile:
         start = time.time()
 
         self.calc_dict['n_defects'] = n_defects
-        self.calc_dict.update(func_kwargs)
+        self.calc_dict['function'] = func.__name__
+        self.calc_dict['method'] = self.defect_dependence.__name__
         self.calc_dict = {**self.calc_dict, **func_kwargs}
 
         self.QY = np.zeros((len(n_defects), 2))
@@ -211,6 +213,8 @@ class CNTSimFile:
 
         self.calc_dict['CNT_length'] = CNT_length
         self.calc_dict['defect_density'] = defect_density
+        self.calc_dict['function'] = func.__name__
+        self.calc_dict['method'] = self.length_dependence.__name__
         self.calc_dict = {**self.calc_dict, **func_kwargs}
 
         self.n_defects = np.zeros(len(CNT_length))
@@ -279,8 +283,10 @@ class CNTSimFile:
         print('start of calculation:', datetime.datetime.now())
         start = time.time()
 
-        self.calc_dict = {**self.calc_dict, **func_kwargs}
         self.calc_dict['Diff_const'] = diff_const
+        self.calc_dict['function'] = func.__name__
+        self.calc_dict['method'] = self.diffusion_dependence.__name__
+        self.calc_dict = {**self.calc_dict, **func_kwargs}
 
         self.QY = np.zeros((self.calc_dict['Diff_const'].shape[1], 2))
 
@@ -321,3 +327,21 @@ class CNTSimFile:
                       self.calc_dict['defect_density'],
                       self.calc_dict['CNT_length']))
             return fig
+
+    def referenced_diffusion_dependence(self, n_photons, func, diff_const,
+                                        ref_diff_const, func_kwargs={},
+                                        plot=False):
+        self.diffusion_dependence(self, n_photons, func, diff_const,
+                                  func_kwargs={})
+        self.calc_dict['ref_diff_const'] = ref_diff_const
+        self.calc_dict['function'] = func.__name__
+        self.calc_dict['method'] = self.referenced_diffusion_dependence.__name__
+        # self.QY_ref = np.zeros((1, 2))
+        # self.p_fate_ref = np.zero((1, self.p_fate.shape[1]))
+        self.p_fate_ref, self.QY_ref = self.photons_fate(
+                    n_photons, func,
+                    {'Diff_exc_e': ref_diff_const[0],
+                     'Diff_exc_d': ref_diff_const[1],
+                     **func_kwargs})
+        self.QY_delta = (self.QY - self.QY_ref)/self.QY_ref
+        
