@@ -28,7 +28,7 @@ T_STEP_ps = 1  # time step
 D_e_exc_nm_per_s = 1.07e15
 
 # https://doi.org/10.1021/acsnano.6b02986
-D_d_exc_nm_per_s = 07e15 / 3
+D_d_exc_nm_per_s = 1.07e15 / 3
 
 # termal detrapping 10.1021/acs.jpclett.8b03732
 k_dt_per_s = 0.5 * (1e12 / 385 + 1e12 / 1132) + 0.1e12 * np.exp(-1.6182e-11 /

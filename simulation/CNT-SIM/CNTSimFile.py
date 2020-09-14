@@ -282,14 +282,14 @@ class CNTSimFile:
         self.calc_dict = {**self.calc_dict, **func_kwargs}
         self.calc_dict['Diff_const'] = diff_const
 
-        self.QY = np.zeros((self.diff_dependence.shape[1], 2))
+        self.QY = np.zeros((self.calc_dict['Diff_const'].shape[1], 2))
 
         p_fate, _ = self.photons_fate(1, func, {**func_kwargs})
-        self.p_fate = np.zeros((self.diff_dependence.shape[1],
+        self.p_fate = np.zeros((self.calc_dict['Diff_const'].shape[1],
                                 np.size(p_fate)))
 
         for i in np.arange(diff_const.shape[1]):
-            print(f'exciton processed(({i}/ diff_dependence.shape[1]))')
+            print(f'exciton processed(({i}/ {diff_const.shape[1]}))')
 
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
                     n_photons, func,
@@ -308,6 +308,16 @@ class CNTSimFile:
                          self.QY[:, 1] * 100, label='E11*')
             plt.xlabel('diff_exc_e / nm s$^{-1}$')
             plt.ylabel('quantum yield / %')
-            plt.title('diffusion constant dependence, defect distance = {} nm, l = {} nm'.format(
+            plt.title('diffusion constant excited exciton, defect distance = {} nm, l = {} nm'.format(
                       self.calc_dict['defect_density'],
                       self.calc_dict['CNT_length']))
+            axes[1].plot(self.calc_dict['Diff_const'][1, :],
+                         self.QY[:, 0] * 100, label='E11')
+            axes[1].plot(self.calc_dict['Diff_const'][1, :],
+                         self.QY[:, 1] * 100, label='E11*')
+            plt.xlabel('diff_exc_d / nm s$^{-1}$')
+            plt.ylabel('quantum yield / %')
+            plt.title('diffusion constant dark exciton, defect distance = {} nm, l = {} nm'.format(
+                      self.calc_dict['defect_density'],
+                      self.calc_dict['CNT_length']))
+            return fig
