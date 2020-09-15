@@ -46,7 +46,7 @@ TAU_d_ps = 82
 
 TAU_b_ps = 85
 
-
+# TODO: scale defect density impact
 def tau_func(n_defects, tau):
     return tau + 18.56986 * np.exp(-(n_defects + 0.05333) / 1.42987)
 
@@ -97,7 +97,7 @@ def create_exciton(CNT_length=L_nm):
     return random.randrange(CNT_length)
 
 
-def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
+def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
                                     CNT_length=L_nm, r_exc_nm=R_nm):
     """
     Simulation with three states above ground state: Excited state S11 (0),
@@ -140,17 +140,17 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
     """
 
     constants = np.zeros(11)
-    constants[:6] = kin_const[:6]
-    constants[-2] = kin_const[-1]
-    constants[6] = k_nothing_b(t_step, n_defects, *kin_const[:6:2])
-    constants[7] = k_nothing_e(t_step, n_defects, *kin_const[1:7:2])
-    constants[-1] = kin_const[6]
-    constants[8] = k_nothing_d(t_step, n_defects, *kin_const[-2:])
+    constants[:6] = rate_const[:6]
+    constants[-2] = rate_const[-1]
+    constants[6] = k_nothing_b(t_step, n_defects, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, n_defects, *rate_const[1:7:2])
+    constants[-1] = rate_const[6]
+    constants[8] = k_nothing_d(t_step, n_defects, *rate_const[-2:])
 
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state
     fate = 7
-    state = (np.random.random(1) < 0.8 ).astype(int)[0]
+    state = (np.random.random(1) < 0.8).astype(int)[0]
 
     # Initiate matrix to store exciton fate
     exciton_fate = np.zeros(len(constants))
@@ -213,7 +213,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
             # Store result for highest probability
             fate = 2*p_fate.argmax()
             exciton_fate[fate] += 1
-            # if exciton escpaes move along, set state
+            # if exciton escapes move along, set state
             if fate == 4:
                 state = 0
                 pos_exc_1 += r_exc_nm
@@ -254,12 +254,12 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=N_DEF,
     return exciton_fate
 
 
-def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
+def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
                 Diff_exc_d=D_d_exc_nm_per_s, n_defects=N_DEF,
                 CNT_length=L_nm, r_exc_nm=R_nm):
     """
-    Simulation with three states above ground state: Excited state S11 (0),
-    dark state (1) and bright state S11* (2). Diffusion along the nanotube is
+    Simulation with three states above ground state: Excited state S11 (0, e),
+    dark state (1, d) and bright state S11* (2, b). Diffusion along the nanotube is
     allowed for state 0 & 1. Exchange is possible between all states. The
     transition into the trap from 0 & 1 to 2 is modeled with MC steps, thermal
     detrapping is possible. Excitons are quenched if defects are too close
@@ -269,7 +269,7 @@ def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
     ----------
     t_step : float
         Timestep in ps.
-    constants : 1D array
+    rate_const : 1D array
         kinetic constants in order of:
         [k_br, k_er, k_bnr, k_enr, k_be, k_ed, k_de, k_dnr]
     n_defects : int, optional
@@ -302,12 +302,12 @@ def exciton_sim(t_step, kin_const, Diff_exc_e=D_e_exc_nm_per_s,
     """
 
     constants = np.zeros(11)
-    constants[:6] = kin_const[:6]
-    constants[-2] = kin_const[-1]
-    constants[6] = k_nothing_b(t_step, n_defects, *kin_const[:6:2])
-    constants[7] = k_nothing_e(t_step, n_defects, *kin_const[1:7:2])
-    constants[-1] = kin_const[6]
-    constants[8] = k_nothing_d(t_step, n_defects, *kin_const[-2:])
+    constants[:6] = rate_const[:6]
+    constants[-2] = rate_const[-1]
+    constants[6] = k_nothing_b(t_step, n_defects, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, n_defects, *rate_const[1:7:2])
+    constants[-1] = rate_const[6]
+    constants[8] = k_nothing_d(t_step, n_defects, *rate_const[-2:])
 
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state

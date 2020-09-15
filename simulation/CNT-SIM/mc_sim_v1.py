@@ -42,13 +42,13 @@ def exciton_fate():
         Matrix showing the binned fate of the MC steps. Order is
         k_r_per_s, k_nr_per_s, k_d_per_s, k_d_per_s
     """
-    kin_const = [k_r_per_s, k_nr_per_s, k_d_per_s, k_d_per_s]
+    rate_const = [k_r_per_s, k_nr_per_s, k_d_per_s, k_d_per_s]
     fate = 3  # fate of single exciton in MC step
-    exciton_fate = np.zeros(len(kin_const))
+    exciton_fate = np.zeros(len(rate_const))
 
     while fate > 1:
         # calculate the probability for exciton decay
-        p_fate = np.array([e * random.uniform(0, 1) for e in kin_const])
+        p_fate = np.array([e * random.uniform(0, 1) for e in rate_const])
 
         # Store result for highest probability
         fate = p_fate.argmax()
@@ -77,7 +77,7 @@ k_d_r_per_s = 2.5e09  # constant for radiativ decay from E11*
 k_nr_per_s = 5e09  # constant of non-radiativ decay from E11
 k_d_nr_per_s = 5e09  # constant for non-radiativ decay from E11*
 
-# KIN_CONST = np.array([k_d_r_per_s, k_r_per_s, k_d_nr_per_s, k_nr_per_s,
+# rate_const = np.array([k_d_r_per_s, k_r_per_s, k_d_nr_per_s, k_nr_per_s,
 #                      k_dt_per_s])
 
 
@@ -125,7 +125,7 @@ def create_exciton(CNT_length=L_nm):
     return random.randrange(CNT_length)
 
 
-def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
+def exciton_walk(t_step, rate_const, n_defects=10, CNT_length=L_nm,):
     """
     Simulation with two states above ground state: Excited state S11 (0),
     defect state S11+ (1) Diffusion along the nanotube is allowed for state 0.
@@ -159,10 +159,10 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     """
 
     constants = np.zeros(7)
-    constants[:4] = kin_const[:4]
-    constants[-1] = kin_const[-1]
-    constants[4] = k_nothing_def(t_step, *kin_const[:2])
-    constants[5] = k_nothing(t_step, *kin_const[1::2])
+    constants[:4] = rate_const[:4]
+    constants[-1] = rate_const[-1]
+    constants[4] = k_nothing_def(t_step, *rate_const[:2])
+    constants[5] = k_nothing(t_step, *rate_const[1::2])
 
     # inital exciton is free in E11
     fate = 5
@@ -229,7 +229,7 @@ def exciton_walk(t_step, kin_const, n_defects=10, CNT_length=L_nm,):
     return exciton_fate
 
 
-def exciton_simulation(t_step, kin_const, n_defects=10, CNT_length=L_nm,
+def exciton_simulation(t_step, rate_const, n_defects=10, CNT_length=L_nm,
                        r_exc_nm=R_nm):
     """
     Simulation with two states above ground state: Excited state S11 (0),
@@ -267,10 +267,10 @@ def exciton_simulation(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     """
 
     constants = np.zeros(7)
-    constants[:4] = kin_const[:4]
-    constants[-1] = kin_const[-1]
-    constants[4] = k_nothing_d(t_step, *kin_const[:2])
-    constants[5] = k_nothing(t_step, *kin_const[1::2])
+    constants[:4] = rate_const[:4]
+    constants[-1] = rate_const[-1]
+    constants[4] = k_nothing_d(t_step, *rate_const[:2])
+    constants[5] = k_nothing(t_step, *rate_const[1::2])
 
     # inital exciton is free in E11
     fate = 4
@@ -395,11 +395,11 @@ def k_nothing_b(t_step, k_br=k_br_per_s, k_bnr=k_bnr_per_s, k_bd=k_bd_per_s,
     return (k_bd + k_bnr + k_br) * tau_b / t_step
 
 
-# KIN_CONST = np.array([k_br_per_s, k_er_per_s, k_bnr_per_s, k_enr_per_s,
+# rate_const = np.array([k_br_per_s, k_er_per_s, k_bnr_per_s, k_enr_per_s,
 #                       k_bd_per_s, k_ed_per_s, k_de_per_s])
 
 '''
-def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
+def exciton_sim_4_level(t_step, rate_const, n_defects=10, CNT_length=L_nm,
                         r_exc_nm=R_nm):
     """
     Simulation with three states above ground state: Excited state S11 (0),
@@ -441,11 +441,11 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     """
 
     constants = np.zeros(10)
-    constants[:6] = kin_const[:6]
-    constants[-2] = kin_const[-1]
-    constants[6] = k_nothing_b(t_step, *kin_const[:6:2])
-    constants[7] = k_nothing_e(t_step, *kin_const[1:6:2])
-    constants[-1] = k_nothing_d(t_step, kin_const[-1])
+    constants[:6] = rate_const[:6]
+    constants[-2] = rate_const[-1]
+    constants[6] = k_nothing_b(t_step, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, *rate_const[1:6:2])
+    constants[-1] = k_nothing_d(t_step, rate_const[-1])
 
     # inital exciton is free in S11
     fate = 7
@@ -574,7 +574,7 @@ def k_nothing_d_2(t_step, n_defects, k_de, k_dnr, tau_d=TAU_d_ps):
     return (k_de + k_dnr) * tau_func(n_defects, tau_d)  / t_step
 
 
-def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
+def exciton_sim_4_level(t_step, rate_const, n_defects=10, CNT_length=L_nm,
                         r_exc_nm=R_nm):
     """
     Simulation with three states above ground state: Excited state S11 (0),
@@ -616,11 +616,11 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     """
 
     constants = np.zeros(10)
-    constants[:6] = kin_const[:6]
-    constants[-3:-1] = kin_const[-2:]
-    constants[6] = k_nothing_b(t_step, *kin_const[:6:2])
-    constants[7] = k_nothing_e(t_step, *kin_const[1:6:2])
-    constants[-1] = k_nothing_d_2(t_step, *kin_const[-2:])
+    constants[:6] = rate_const[:6]
+    constants[-3:-1] = rate_const[-2:]
+    constants[6] = k_nothing_b(t_step, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, *rate_const[1:6:2])
+    constants[-1] = k_nothing_d_2(t_step, *rate_const[-2:])
 
     # inital exciton is free in S11
     fate = 7
@@ -725,7 +725,7 @@ def exciton_sim_4_level(t_step, kin_const, n_defects=10, CNT_length=L_nm,
     return exciton_fate
 
 
-def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=10,
+def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=10,
                                     CNT_length=L_nm, r_exc_nm=R_nm):
     """
     Simulation with three states above ground state: Excited state S11 (0),
@@ -768,11 +768,11 @@ def exciton_sim_4_lvl_full_exchange(t_step, kin_const, n_defects=10,
     """
 
     constants = np.zeros(11)
-    constants[:7] = kin_const[:7]
-    constants[-2] = kin_const[-1]
-    constants[8] = k_nothing_b_2(t_step, *kin_const[:7:2])
-    constants[7] = k_nothing_e(t_step, *kin_const[1:7:2])
-    constants[-1] = k_nothing_d(t_step, kin_const[-1])
+    constants[:7] = rate_const[:7]
+    constants[-2] = rate_const[-1]
+    constants[8] = k_nothing_b_2(t_step, *rate_const[:7:2])
+    constants[7] = k_nothing_e(t_step, *rate_const[1:7:2])
+    constants[-1] = k_nothing_d(t_step, rate_const[-1])
 
     # inital exciton is free in S11
     fate = 8
