@@ -16,7 +16,7 @@ from scipy.constants import Boltzmann as kB
 # QY_E11_d = np.range(0.1,0.28)
 # QY_E11 < 0.1
 
-L_nm = 300  # length of the nanotube
+L_nm = 750  # length of the nanotube
 
 # https://doi.org/10.1038/nphys1149
 R_nm = 2  # radius of the exiton
@@ -47,39 +47,114 @@ TAU_d_ps = 82
 TAU_b_ps = 85
 
 # TODO: scale defect density impact
-def tau_func(n_defects, tau):
-    return tau + 18.56986 * np.exp(-(n_defects + 0.05333) / 1.42987)
+def tau_func(n_defects, tau, alpha):
+    """Models the exponential dependence of the lifetime and the number of
+    defects on the nanotube.
+    See https://doi.org/10.1021/acsnano.6b02986
+
+    Parameters
+    ----------
+    n_defects : int
+        Number of defects on the CNT.
+    tau : float
+        Lower limit of lifetime for a large number of defects in ps.
+    alpha : float
+        Sacling factor for the exponential decay function.
+
+    Returns
+    -------
+    tau : float
+        Lifetime in ps.
+    """
+    return tau + 18.56986 * np.exp(- alpha * (n_defects + 0.05333) / 1.42987)
 
 
-def k_nothing_e(t_step, n_defects, k_er, k_enr, k_ed, tau_e=TAU_e_ps):
-    return (k_er + k_enr + k_ed) * tau_func(n_defects, tau_e) / t_step
+def k_nothing_e(t_step, n_defects, alpha, k_er, k_enr, k_ed, tau_e=TAU_e_ps):
+    """Calculates a probability for the exciton to remain in the excited state.
+
+    Paramaters
+    ----------
+    t_step : float
+        Timestep in ps.
+    n_defects : int
+        Number of defects on the CNT.
+    k_er, k_enr, k_ed : floats
+        Transition Rates of depopulating processes for the excited state.
+    tau_e : float
+        Lifetime of excieted state at large defect densities in ps.
+
+    Returns
+    -------
+    k_noting_e : float
+        Rate constant for the excitons which don't undergo a depopulating
+        process.
+    """
+    return (k_er + k_enr + k_ed) * tau_func(n_defects, tau_e, alpha) / t_step
 
 
-def k_nothing_b(t_step, n_defects, k_br, k_bnr, k_be, tau_b=TAU_b_ps):
-    return (k_bnr + k_br + k_be) * tau_func(n_defects, tau_b) / t_step
+def k_nothing_b(t_step, n_defects, alpha, k_br, k_bnr, k_be, tau_b=TAU_b_ps):
+    """Calculates a probability for the exciton to remain in the bright state.
+
+    Paramaters
+    ----------
+    t_step : float
+        Timestep in ps.
+    n_defects : int
+        Number of defects on the CNT.
+    k_br, k_bnr, k_be : floats
+        Transition Rates of depopulating processes for the bright state.
+    tau_b : float
+        Lifetime of bright state at large defect densities in ps.
+
+    Returns
+    -------
+    k_noting_e : float
+        Rate constant for the excitons which don't undergo a depopulating
+        process.
+    """
+    return (k_bnr + k_br + k_be) * tau_func(n_defects, tau_b, alpha) / t_step
 
 
-def k_nothing_d(t_step, n_defects, k_de, k_dnr, tau_d=TAU_d_ps):
-    return (k_de + k_dnr) * tau_func(n_defects, tau_d) / t_step
+def k_nothing_d(t_step, n_defects, alpha, k_de, k_dnr, tau_d=TAU_d_ps):
+    """Calculates a probability for the exciton to remain in the dark state.
+
+    Paramaters
+    ----------
+    t_step : float
+        Timestep in ps.
+    n_defects : int
+        Number of defects on the CNT.
+    k_de, k_dnr : floats
+        Transition Rates of depopulating processes for the dark state.
+    tau_d : float
+        Lifetime of dark state at large defect densities in ps.
+
+    Returns
+    -------
+    k_noting_e : float
+        Rate constant for the excitons which don't undergo a depopulating
+        process.
+    """
+    return (k_de + k_dnr) * tau_func(n_defects, tau_d, alpha) / t_step
 
 
-def create_defects(CNT_length=L_nm, n_def=N_DEF):
+def create_defects(CNT_length=L_nm, n_defects=N_DEF):
     """Creates defects along the CNT at random position.
 
     Parameters
     ----------
     CNT_length : int, optional
         Length of the CNT in nm, global constant as default.
-    n_def : int, optional
+    n_defects : int, optional
         Number of defects on the CNT, global constant as default.
 
     Returns
     -------
     pos_def : 1D array
         Positions in nm of the defects on the CNT stored in
-        array size (n_def, 1)
+        array size (n_defects, 1)
     """
-    return np.random.randint(0, CNT_length, size=n_def)
+    return np.random.randint(0, CNT_length, size=n_defects)
 
 
 def create_exciton(CNT_length=L_nm):
@@ -98,7 +173,7 @@ def create_exciton(CNT_length=L_nm):
 
 
 def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
-                                    CNT_length=L_nm, r_exc_nm=R_nm):
+                                    CNT_length=L_nm, r_exc_nm=R_nm, alpha=1):
     """
     Simulation with three states above ground state: Excited state S11 (0),
     dark state (1) and bright state S11* (2). Diffusion along the nanotube is
@@ -120,6 +195,13 @@ def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
         Length of the CNT in nm, global constant as default.
     r_exc_nm : int
         Radius of the Exciton in nm
+    alpha : float
+        Scaling factor for the exponential relation between the lifetime and
+        the number of defects on the nanotube in form of:
+        tau = tau_inf + 18.56986 * np.exp(- alpha * (n_defects + 0.05333) 
+                                        /1.42987)
+        See: https://doi.org/10.1021/acsnano.6b02986
+
 
     Returns
     -------
@@ -142,10 +224,10 @@ def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
     constants = np.zeros(11)
     constants[:6] = rate_const[:6]
     constants[-2] = rate_const[-1]
-    constants[6] = k_nothing_b(t_step, n_defects, *rate_const[:6:2])
-    constants[7] = k_nothing_e(t_step, n_defects, *rate_const[1:7:2])
+    constants[6] = k_nothing_b(t_step, n_defects, alpha, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, n_defects, alpha, *rate_const[1:7:2])
     constants[-1] = rate_const[6]
-    constants[8] = k_nothing_d(t_step, n_defects, *rate_const[-2:])
+    constants[8] = k_nothing_d(t_step, n_defects, alpha, *rate_const[-2:])
 
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state
@@ -256,7 +338,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
 
 def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
                 Diff_exc_d=D_d_exc_nm_per_s, n_defects=N_DEF,
-                CNT_length=L_nm, r_exc_nm=R_nm):
+                CNT_length=L_nm, r_exc_nm=R_nm, alpha=1):
     """
     Simulation with three states above ground state: Excited state S11 (0, e),
     dark state (1, d) and bright state S11* (2, b). Diffusion along the nanotube is
@@ -282,6 +364,12 @@ def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
         Diffusion constant for excited exciton, global constant as default.
     Diff_exc_d : float
         Diffusion constant for dark exciton, global constant as default.
+    alpha : float
+        Scaling factor for the exponential relation between the lifetime and
+        the number of defects on the nanotube in form of:
+        tau = tau_0 + 18.56986 * np.exp(- alpha * (n_defects + 0.05333) 
+                                        /1.42987)
+        See: https://doi.org/10.1021/acsnano.6b02986
 
     Returns
     -------
@@ -304,10 +392,10 @@ def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
     constants = np.zeros(11)
     constants[:6] = rate_const[:6]
     constants[-2] = rate_const[-1]
-    constants[6] = k_nothing_b(t_step, n_defects, *rate_const[:6:2])
-    constants[7] = k_nothing_e(t_step, n_defects, *rate_const[1:7:2])
+    constants[6] = k_nothing_b(t_step, n_defects, alpha, *rate_const[:6:2])
+    constants[7] = k_nothing_e(t_step, n_defects, alpha, *rate_const[1:7:2])
     constants[-1] = rate_const[6]
-    constants[8] = k_nothing_d(t_step, n_defects, *rate_const[-2:])
+    constants[8] = k_nothing_d(t_step, n_defects, alpha, *rate_const[-2:])
 
     # inital exciton is free, to 80 % in state dark state, to 20 % in exited
     # state

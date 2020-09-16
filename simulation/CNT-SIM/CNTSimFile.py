@@ -25,7 +25,6 @@ class CNTSimFile:
         self.QY = None
         self.p_fate = None
         self.calc_dict = {'date': datetime.datetime.now().strftime("%Y-%m-%d")}
-        self.n_defects = None
         self.notebook_output = False
         if Path(filepath).is_file():
             self.load()
@@ -45,10 +44,19 @@ class CNTSimFile:
         data = h5py.File(self.filepath)
         self.rate_const = data['rate_const'][:]
         self.QY = data['QY'][:]
+
         try:
             self.p_fate = data['p_fate'][:]
         except KeyError:
             warn('no p_fate key in file')
+
+        try:
+            self.p_fate = data['QY_delta'][:]
+            self.p_fate = data['QY_ref'][:]
+            self.p_fate = data['p_fate_ref'][:]
+        except KeyError:
+            pass
+
         self.calc_dict = {k: v for k, v in data['dict'].attrs.items()}
         data.close()
 
@@ -68,10 +76,21 @@ class CNTSimFile:
             hdf5_file.create_dataset('p_fate', compression='gzip',
                                      data=self.p_fate,
                                      dtype=np.float32)
+            try:
+                hdf5_file.create_dataset('QY_delta', compression='gzip',
+                                     data=self.QY_delta,
+                                     dtype=np.float32)
+                hdf5_file.create_dataset('QY_ref', compression='gzip',
+                                     data=self.QY_ref,
+                                     dtype=np.float32)
+                hdf5_file.create_dataset('p_fate_ref', compression='gzip',
+                                     data=self.p_fate_ref,
+                                     dtype=np.float32)
+            except AttributeError:
+                pass
             grp = hdf5_file.create_group('dict', )
             for key, value in self.calc_dict.items():
                 grp.attrs[key] = value
-            #####TODO! Is all output from new methods saved???!!!
         except:
             print('Datasets could not be created')
         finally:
@@ -98,7 +117,7 @@ class CNTSimFile:
         quantum_yield : 1D array
             Quantum yield of the E11 and E11* radiative decay."""
 
-        print('start of exiton simulation:', datetime.datetime.now())
+        print('Start of exiton simulation:', datetime.datetime.now())
         start_p = time.time()
 
         self.calc_dict['n_photons'] = n_photons
@@ -120,8 +139,8 @@ class CNTSimFile:
 
         end = time.time()
         elapsed = end - start_p
-        print(datetime.datetime.now())
-        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        print('End exiton simulation:'datetime.datetime.now())
+        print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         return photons_fate, quantum_yield
 
     def defect_dependence(self, n_photons, func, n_defects, func_kwargs={},
@@ -141,8 +160,8 @@ class CNTSimFile:
             List of integers for the varied number of defects on the
             nanotube
 
-        Returns
-        -------
+        Yields
+        ------
         QY : 2D array
             Array of quantum yields at different defect density in
             QY object.
@@ -163,7 +182,7 @@ class CNTSimFile:
         self.p_fate = np.zeros((len(n_defects), np.size(p_fate)))
 
         for i, n_def in enumerate(n_defects):
-            print(f'exciton processed(({i}/ {len(n_defects)}))')
+            print(f'defect numbers processed(({i}/ {len(n_defects)}))')
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
                     n_photons, func, self.rate_const,
                     {'n_defects': n_def, **func_kwargs})
@@ -202,15 +221,15 @@ class CNTSimFile:
         defect_density : float
             Average between two defects in nm.
 
-        Returns
-        -------
+        Yields
+        ------
         QY : 2D array
             Array of quantum yields at different defect density in
             QY object.
         calc_dict : dict
             Updates information in the calc_dict object.
         """
-        print('start of calculation:', datetime.datetime.now())
+        print('Start of calculation:', datetime.datetime.now())
         start = time.time()
 
         self.calc_dict['CNT_length'] = CNT_length
@@ -222,12 +241,12 @@ class CNTSimFile:
         self.n_defects = np.zeros(len(CNT_length))
         self.QY = np.zeros((len(self.n_defects), 2))
         p_fate, _ = self.photons_fate(1, func, self.rate_const,
-                                      {'n_defects': 0, 'CNT_length': 300,
+                                      {'n_defects': 0, 'CNT_length': 750,
                                        **func_kwargs})
         self.p_fate = np.zeros((len(self.n_defects), np.size(p_fate)))
 
         for i, l_nm in enumerate(CNT_length):
-            print(f'exciton processed(({i}/ {len(CNT_length)}))')
+            print(f'CNT lengths processed(({i}/ {len(CNT_length)}))')
             self.n_defects[i] = round(l_nm/defect_density)
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
                     n_photons, func, self.rate_const,
@@ -237,8 +256,8 @@ class CNTSimFile:
 
         end = time.time()
         elapsed = end - start
-        print(datetime.datetime.now())
-        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        print('End of calculation:'datetime.datetime.now())
+        print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         if plot is True:
             fig = plt.subplot()
             plt.plot(self.calc_dict['CNT_length'], self.QY[:, 0] * 100,
@@ -269,20 +288,19 @@ class CNTSimFile:
         Diff_exc_d : float
             Diffusion constant for dark exciton, global constant as default
         diff_const : array
-            2D numpy array [0, :] is for diffusion constant of the exited
-            state and [1, :] contains the diffusion constants for the dark
+            2D numpy array [:, 0] is for diffusion constant of the exited
+            state and [:, 1] contains the diffusion constants for the dark
             state
 
-        Returns
-        -------
+        Yields
+        ------
         QY : 2D array
             Array of quantum yields at different defect density in
             QY object.
         calc_dict : dict
             Updates information in the calc_dict object.
         """
-        print('To be implemented')
-        print('start of calculation:', datetime.datetime.now())
+        print('Start of calculation:', datetime.datetime.now())
         start = time.time()
 
         self.calc_dict['Diff_const'] = diff_const
@@ -290,38 +308,39 @@ class CNTSimFile:
         self.calc_dict['method'] = self.diffusion_dependence.__name__
         self.calc_dict = {**self.calc_dict, **func_kwargs}
 
-        self.QY = np.zeros((self.calc_dict['Diff_const'].shape[1], 2))
+        self.QY = np.zeros((self.calc_dict['Diff_const'].shape[0], 2))
 
-        p_fate, _ = self.photons_fate(1, func, self.rate_const, {**func_kwargs})
-        self.p_fate = np.zeros((self.calc_dict['Diff_const'].shape[1],
+        p_fate, _ = self.photons_fate(1, func, self.rate_const,
+                                      {**func_kwargs})
+        self.p_fate = np.zeros((self.calc_dict['Diff_const'].shape[0],
                                 np.size(p_fate)))
 
-        for i in np.arange(diff_const.shape[1]):
-            print(f'exciton processed({i}/ {diff_const.shape[1]})')
+        for i in np.arange(diff_const.shape[0]):
+            print(f'diff constant set processed({i}/ {diff_const.shape[0]})')
 
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
-                    n_photons, func, self.rate_const
-                    {'Diff_exc_e': diff_const[0, i],
-                     'Diff_exc_d': diff_const[1, i],
+                    n_photons, func, self.rate_const,
+                    {'Diff_exc_e': diff_const[i, 0],
+                     'Diff_exc_d': diff_const[i, 1],
                      **func_kwargs})
         end = time.time()
         elapsed = end - start
-        print(datetime.datetime.now())
-        print('elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        print('End of calculation:'datetime.datetime.now())
+        print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         if plot is True:
             fig, axes = plt.subplots(nrows=1, ncols=2)
-            axes[0].plot(self.calc_dict['Diff_const'][0, :],
+            axes[0].plot(self.calc_dict['Diff_const'][:, 0],
                          self.QY[:, 0] * 100, label='E11')
-            axes[0].plot(self.calc_dict['Diff_const'][0, :],
+            axes[0].plot(self.calc_dict['Diff_const'][:, 0],
                          self.QY[:, 1] * 100, label='E11*')
             plt.xlabel('diff_exc_e / nm s$^{-1}$')
             plt.ylabel('quantum yield / %')
             plt.title('diffusion constant excited exciton, defect distance = {} nm, l = {} nm'.format(
                       self.calc_dict['defect_density'],
                       self.calc_dict['CNT_length']))
-            axes[1].plot(self.calc_dict['Diff_const'][1, :],
+            axes[1].plot(self.calc_dict['Diff_const'][:, 1],
                          self.QY[:, 0] * 100, label='E11')
-            axes[1].plot(self.calc_dict['Diff_const'][1, :],
+            axes[1].plot(self.calc_dict['Diff_const'][:, 1],
                          self.QY[:, 1] * 100, label='E11*')
             plt.xlabel('diff_exc_d / nm s$^{-1}$')
             plt.ylabel('quantum yield / %')
@@ -343,20 +362,18 @@ class CNTSimFile:
             exited state and 1 the diffusion constant of the dark state.
 
         others arguments see diffusion_dependence """
-        self.diffusion_dependence(self, n_photons, func, diff_const,
-                                  func_kwargs={})
         self.calc_dict['ref_diff_const'] = ref_diff_const
         self.calc_dict['function'] = func.__name__
         self.calc_dict['method'] = self.referenced_diffusion_dependence.__name__
-        # self.QY_ref = np.zeros((1, 2))
-        # self.p_fate_ref = np.zero((1, self.p_fate.shape[1]))
-        self.calc_dict['p_fate_ref'], self.calc_dict['QY_ref'] = self.photons_fate(
-            n_photons, func, self.rate_const,
-            {'Diff_exc_e': ref_diff_const[0],
-             'Diff_exc_d': ref_diff_const[1],
-             **func_kwargs})
-        self.QY_delta = (
-            self.QY - self.calc_dict['QY_ref']) / self.calc_dict['QY_ref']
+
+        self.diffusion_dependence(self, n_photons, func, diff_const,
+                                  func_kwargs={})
+        self.p_fate_ref, self.QY_ref = self.photons_fate(
+                                            n_photons, func, self.rate_const,
+                                            {'Diff_exc_e': ref_diff_const[0],
+                                             'Diff_exc_d': ref_diff_const[1],
+                                             **func_kwargs})
+        self.QY_delta = (self.QY - self.QY_ref) / self.QY_ref
 
     def rate_const_dependence(self, n_photons, func, constants_array,
                              constants_key=None, func_kwargs={}, plot=Falses):
@@ -367,24 +384,69 @@ class CNTSimFile:
 
         Parameters
         ----------
-        constants_array : array
-            array of shape (n, m), with n rate constants to be varried and m
-            variations
-        constants_key : dict
-            Dictionary which gives the index of the n-th rate constant to be
-            varied in the index j of the reference rate constant set given
-            upon initiation {n: j}
+        constant_dependence : array
+            2D array of shape (n, m), with n variations of m rate constants.
+        chosen_const : list
+            Orderd list of all the names of m rate constants given in
+            constant_array as stings.
+        constant_names : list
+            Ordered list of all the names of rate constants required for the
+            function as strings.
+
+        Yields
+        ------
+        constant_array : array
+            2D array with full set of rate constants used for each simulation
+            step.
         """
-        self.calc_dict['constants_array'] = constants_array
-        self.calc_dict['constants_key'] = constants_key
+        print('Start of calculation:', datetime.datetime.now())
+        start = time.time()
+
+        N, M, _ = constant_dependence.shape
+        
+        self.calc_dict['constant_dependence'] = constant_dependence
+        self.calc_dict['chosen_const'] = chosen_const
+        self.calc_dict['constant_names'] = constant_names
         self.calc_dict['function'] = func.__name__
         self.calc_dict['method'] = self.rate_const_dependence.__name__
         self.calc_dict = {**self.calc_dict, **func_kwargs}
-        self.calc_dict['p_fate_ref'], self.calc_dict['QY_ref'] = self.photons_fate(
+
+        # Caluclate reference for rate constants without dopamine addition.
+        self.p_fate_ref, self.QY_ref = self.photons_fate(
                     n_photons, func, self.rate_const, {**func_kwargs})
-        if constant_array.shape[0] == self.rate_const:
-            self.calc_dict['constant_array'] = constants_array
-        #TODO: Finish this! With Pandas please :)
-        pass
-        
-    
+
+        #Check if all names where given
+        if len(constant_names) != len(self.rate_const):
+            raise ValueError('Number of rate constants given upon initiation '
+                             'does not match the number of names given.')
+            return
+
+        # check if all rate constants are varried
+        if M == self.rate_const:
+            self.calc_dict['constant_array'] = constant_dependence
+            constant_array = constant_dependence
+        else:
+
+            name_loc = [True if i in chosen_const else False for i in
+                        constant_names]
+            name_idx = np.where(name_loc)[0]
+            constant_array = np.zeros((N, len(self.rate_const)))
+            for n in np.arange(N):
+                constant_array[n, :] = self.rate_const
+                for m in np.arange(M):
+                    constant_array[n, name_idx[m]] = constant_dependence[n, m]
+            self.calc_dict['constant_array'] = constant_array
+
+        self.QY = np.zeros((N, 2))
+        self.p_fate = np.zeros((N, np.size(p_fate)))
+        for i in np.arange(N):
+            print(f'rate constant set processed(({i}/ {N}))')
+            self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
+                    n_photons, func, constant_array[i, :],
+                    {**func_kwargs})
+        self.QY_delta = (
+            self.QY - self.QY_ref) / self.QY_ref
+        end = time.time()
+        elapsed = end - start
+        print('End of calculation:'datetime.datetime.now())
+        print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
