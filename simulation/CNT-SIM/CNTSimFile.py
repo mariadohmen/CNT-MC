@@ -51,9 +51,15 @@ class CNTSimFile:
             warn('no p_fate key in file')
 
         try:
-            self.p_fate = data['QY_delta'][:]
-            self.p_fate = data['QY_ref'][:]
-            self.p_fate = data['p_fate_ref'][:]
+            self.QY_delta = data['QY_delta'][:]
+        except KeyError:
+            pass
+        try:
+            self.QY_ref = data['QY_ref'][:]
+        except KeyError:
+            pass
+        try:
+            self.p_fate_ref = data['p_fate_ref'][:]
         except KeyError:
             pass
 
@@ -139,7 +145,7 @@ class CNTSimFile:
 
         end = time.time()
         elapsed = end - start_p
-        print('End exiton simulation:'datetime.datetime.now())
+        print('End exiton simulation:', datetime.datetime.now())
         print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         return photons_fate, quantum_yield
 
@@ -256,7 +262,7 @@ class CNTSimFile:
 
         end = time.time()
         elapsed = end - start
-        print('End of calculation:'datetime.datetime.now())
+        print('End exiton simulation:', datetime.datetime.now())
         print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         if plot is True:
             fig = plt.subplot()
@@ -325,28 +331,30 @@ class CNTSimFile:
                      **func_kwargs})
         end = time.time()
         elapsed = end - start
-        print('End of calculation:'datetime.datetime.now())
+        print('End exiton simulation:', datetime.datetime.now())
         print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
         if plot is True:
             fig, axes = plt.subplots(nrows=1, ncols=2)
             axes[0].plot(self.calc_dict['Diff_const'][:, 0],
-                         self.QY[:, 0] * 100, label='E11')
+                         self.QY[:, 0] * 100, label='E11*')
             axes[0].plot(self.calc_dict['Diff_const'][:, 0],
-                         self.QY[:, 1] * 100, label='E11*')
-            plt.xlabel('diff_exc_e / nm s$^{-1}$')
-            plt.ylabel('quantum yield / %')
-            plt.title('diffusion constant excited exciton, defect distance = {} nm, l = {} nm'.format(
-                      self.calc_dict['defect_density'],
+                         self.QY[:, 1] * 100, label='E11')
+            axes[0].set_xlabel('diff_exc_e / nm s$^{-1}$')
+            axes[0].set_ylabel('quantum yield / %')
+            axes[0].set_title('n_def = {} nm, l = {} nm'.format(
+                      self.calc_dict['n_defects'],
                       self.calc_dict['CNT_length']))
             axes[1].plot(self.calc_dict['Diff_const'][:, 1],
-                         self.QY[:, 0] * 100, label='E11')
+                         self.QY[:, 0] * 100, label='E11*')
             axes[1].plot(self.calc_dict['Diff_const'][:, 1],
-                         self.QY[:, 1] * 100, label='E11*')
-            plt.xlabel('diff_exc_d / nm s$^{-1}$')
-            plt.ylabel('quantum yield / %')
-            plt.title('diffusion constant dark exciton, defect distance = {} nm, l = {} nm'.format(
-                      self.calc_dict['defect_density'],
+                         self.QY[:, 1] * 100, label='E11')
+            axes[1].set_xlabel('diff_exc_d / nm s$^{-1}$')
+            axes[1].set_ylabel('quantum yield / %')
+            axes[1].set_title('n_def = {} nm, l = {} nm'.format(
+                      self.calc_dict['n_defects'],
                       self.calc_dict['CNT_length']))
+            plt.legend()
+            plt.tight_layout()
             return fig
 
     def referenced_diffusion_dependence(self, n_photons, func, diff_const,
@@ -361,13 +369,14 @@ class CNTSimFile:
             array like with two positions, 0 is the diffusion constant of the
             exited state and 1 the diffusion constant of the dark state.
 
-        others arguments see diffusion_dependence """
+        Others arguments see diffusion_dependence.
+        """
         self.calc_dict['ref_diff_const'] = ref_diff_const
         self.calc_dict['function'] = func.__name__
         self.calc_dict['method'] = self.referenced_diffusion_dependence.__name__
 
-        self.diffusion_dependence(self, n_photons, func, diff_const,
-                                  func_kwargs={})
+        self.diffusion_dependence(n_photons, func, diff_const,
+                                  {**func_kwargs})
         self.p_fate_ref, self.QY_ref = self.photons_fate(
                                             n_photons, func, self.rate_const,
                                             {'Diff_exc_e': ref_diff_const[0],
@@ -375,8 +384,9 @@ class CNTSimFile:
                                              **func_kwargs})
         self.QY_delta = (self.QY - self.QY_ref) / self.QY_ref
 
-    def rate_const_dependence(self, n_photons, func, constants_array,
-                             constants_key=None, func_kwargs={}, plot=Falses):
+    def rate_const_dependence(self, n_photons, func, constant_dependence,
+                             chosen_const, constant_names, func_kwargs={},
+                              plot=False):
         """
         Calculates Quantum Yield for a varity of rate constants and calculates
         the difference to the reference set given upon initiation of the
@@ -402,8 +412,13 @@ class CNTSimFile:
         print('Start of calculation:', datetime.datetime.now())
         start = time.time()
 
-        N, M, _ = constant_dependence.shape
-        
+        shape_nm = constant_dependence.shape
+        N = shape_nm[0]
+        try:
+            M = shape_nm[1]
+        except IndexError:
+            M = 1
+
         self.calc_dict['constant_dependence'] = constant_dependence
         self.calc_dict['chosen_const'] = chosen_const
         self.calc_dict['constant_names'] = constant_names
@@ -422,7 +437,7 @@ class CNTSimFile:
             return
 
         # check if all rate constants are varried
-        if M == self.rate_const:
+        if M == len(self.rate_const):
             self.calc_dict['constant_array'] = constant_dependence
             constant_array = constant_dependence
         else:
@@ -438,7 +453,7 @@ class CNTSimFile:
             self.calc_dict['constant_array'] = constant_array
 
         self.QY = np.zeros((N, 2))
-        self.p_fate = np.zeros((N, np.size(p_fate)))
+        self.p_fate = np.zeros((N, np.size(self.p_fate_ref)))
         for i in np.arange(N):
             print(f'rate constant set processed(({i}/ {N}))')
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
@@ -448,5 +463,5 @@ class CNTSimFile:
             self.QY - self.QY_ref) / self.QY_ref
         end = time.time()
         elapsed = end - start
-        print('End of calculation:'datetime.datetime.now())
+        print('End exiton simulation:', datetime.datetime.now())
         print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))

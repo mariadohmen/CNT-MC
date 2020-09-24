@@ -46,7 +46,7 @@ TAU_d_ps = 82
 
 TAU_b_ps = 85
 
-# TODO: scale defect density impact
+
 def tau_func(n_defects, tau, alpha):
     """Models the exponential dependence of the lifetime and the number of
     defects on the nanotube.
