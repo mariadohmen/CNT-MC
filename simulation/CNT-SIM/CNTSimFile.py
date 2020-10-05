@@ -455,12 +455,123 @@ class CNTSimFile:
         self.QY = np.zeros((N, 2))
         self.p_fate = np.zeros((N, np.size(self.p_fate_ref)))
         for i in np.arange(N):
-            print(f'rate constant set processed(({i}/ {N}))')
+            print(f'rate constant set processed({i+1}/ {N})')
             self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
                     n_photons, func, constant_array[i, :],
                     {**func_kwargs})
         self.QY_delta = (
             self.QY - self.QY_ref) / self.QY_ref
+        end = time.time()
+        elapsed = end - start
+        print('End exiton simulation:', datetime.datetime.now())
+        print('Elapsed time:', time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+
+    def parameter_dependence(self, n_photons, func, constant_dependence,
+                             chosen_const, constant_names, diff_const,
+                             ref_diff_const, func_kwargs={},
+                              plot=False):
+        """
+        Calculates Quantum Yield for a varity of rate constants and diffusion
+        constant. calculates the difference to the reference set given upon
+        initiation of the CNTSimFile.
+
+        Parameters
+        ----------
+        constant_dependence : array
+            2D array of shape (n, m), with n variations of m rate constants.
+        chosen_const : list
+            Orderd list of all the names of m rate constants given in
+            constant_array as stings.
+        constant_names : list
+            Ordered list of all the names of rate constants required for the
+            function as strings.
+        func : callable
+            Function which returns the quantum yield. Also needs to take
+            the following arguments:
+        Diff_exc_e : float
+            Diffusion constant for excited exciton, global constant as default
+        Diff_exc_d : float
+            Diffusion constant for dark exciton, global constant as default
+        diff_const : 2D array
+            2D numpy array [:, 0] is for diffusion constant of the exited
+            state and [:, 1] contains the diffusion constants for the dark
+            state.
+        ref_diff_const : array
+            array like with two positions, 0 is the diffusion constant of the
+            exited state and 1 the diffusion constant of the dark state.
+
+        Yields
+        ------
+        constant_array : array
+            2D array with full set of rate constants used for each simulation
+            step.
+        """
+        print('Start of calculation:', datetime.datetime.now())
+        start = time.time()
+
+        shape_nm = constant_dependence.shape
+        N = shape_nm[0]
+        try:
+            M = shape_nm[1]
+        except IndexError:
+            M = 1
+        self.calc_dict['Diff_const'] = diff_const
+        self.calc_dict['ref_diff_const'] = ref_diff_const
+        self.calc_dict['constant_dependence'] = constant_dependence
+        self.calc_dict['chosen_const'] = chosen_const
+        self.calc_dict['constant_names'] = constant_names
+        self.calc_dict['function'] = func.__name__
+        self.calc_dict['method'] = self.parameter_dependence.__name__
+        self.calc_dict = {**self.calc_dict, **func_kwargs}
+
+        # Caluclate reference for rate constants without dopamine addition.
+        self.p_fate_ref, self.QY_ref = self.photons_fate(
+                    n_photons, func, self.rate_const,
+                    {'Diff_exc_e': ref_diff_const[0],
+                     'Diff_exc_d': ref_diff_const[1],
+                     **func_kwargs})
+
+        #Check if all names where given
+        if len(constant_names) != len(self.rate_const):
+            raise ValueError('Number of rate constants given upon initiation '
+                             'does not match the number of names given.')
+            return
+
+        # check if all rate constants are varried
+        if M == len(self.rate_const):
+            self.calc_dict['constant_array'] = constant_dependence
+            constant_array = constant_dependence
+        else:
+
+            name_loc = [True if i in chosen_const else False for i in
+                        constant_names]
+            name_idx = np.where(name_loc)[0]
+            constant_array = np.zeros((N, len(self.rate_const)))
+            for n in np.arange(N):
+                constant_array[n, :] = self.rate_const
+                for m in np.arange(M):
+                    constant_array[n, name_idx[m]] = constant_dependence[n, m]
+            self.calc_dict['constant_array'] = constant_array
+
+        # Check if the number of Diff constants are given is different
+        if N != diff_const.shape[0]:
+            warn('the number of diffusion constant variations not matichng '
+                 'the number of rate constant variations. N_Diff adjusted')
+            diff_const[:, 0] = np.linspace(diff_const[0, 0], diff_const[-1, 0],
+                                           N)
+            diff_const[:, 1] = np.linspace(diff_const[0, 1], diff_const[-1, 1],
+                                           N)
+
+        self.QY = np.zeros((N, 2))
+        self.p_fate = np.zeros((N, np.size(self.p_fate_ref)))
+        for i in np.arange(N):
+            print(f'rate constant set processed({i+1}/ {N})')
+            self.p_fate[i, :], self.QY[i, :] = self.photons_fate(
+                    n_photons, func, constant_array[i, :],
+                    {'Diff_exc_e': diff_const[i, 0],
+                     'Diff_exc_d': diff_const[i, 1],
+                     **func_kwargs})
+        self.QY_delta = (self.QY - self.QY_ref) / self.QY_ref
         end = time.time()
         elapsed = end - start
         print('End exiton simulation:', datetime.datetime.now())
