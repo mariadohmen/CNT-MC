@@ -11,7 +11,7 @@ import re
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from .CNTSimFile import CNTSimFile
+from CNTSimFile import CNTSimFile
 
 
 def atof(text):
@@ -64,8 +64,6 @@ def import_Sim_files(import_criterium, shape, kin_const_indeces):
                  for sim in CNT_sims]).reshape(shape)
 
     return CNT_sims, CNT_cube
-
-
 
 
 def colorbar(mappable, clabel=None):
@@ -153,4 +151,60 @@ def plot_quantum_yield(data_cube, QY_index, title, xlabel='$k_{r}$',
     ax.set_title(title)
 
     fig.colorbar(img)
+    return fig
+
+def plot_QY_prist_3_params(SimFile, chosen_const):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twiny()
+    ax2.plot(SimFile.calc_dict['Diff_const'][:, 0]/1e15, SimFile.QY[:, 1]*100, label='E11', alpha=0)
+    ax2.set_xlabel('D_e / $10^{14}$ nm s$^{-1}$')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8, SimFile.QY[:, 1]*100, label='E11')
+    ax1.set_xlabel('{} '.format(SimFile.calc_dict['chosen_const'][chosen_const])+'/ $10^{8}$ s$^{-1}$')
+    ax1.set_ylabel('QY / %')
+    ax1.legend()
+    plt.tight_layout()
+    return fig
+
+def plot_QY_defect_3_params(SimFile, chosen_const):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twiny()
+    ax2.plot(SimFile.calc_dict['Diff_const'][:, 0]/1e15, SimFile.QY[:, 1]*100, label='E11', alpha=0)
+    ax2.set_xlabel('D_e / $10^{14}$ nm s$^{-1}$')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8, SimFile.QY[:, 0]*100, label='E11*')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8, SimFile.QY[:, 1]*100, label='E11')
+    ax1.set_xlabel('{} '.format(SimFile.calc_dict['chosen_const'][chosen_const])+'/ $10^{8}$ s$^{-1}$')
+    ax1.set_ylabel('QY / %')
+    ax1.legend()
+    plt.tight_layout()
+    return fig
+
+def plot_QY_delta_prist_3_params(SimFile, chosen_const):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twiny()
+    ax2.plot(SimFile.calc_dict['Diff_const'][:, 0]/1e15, SimFile.QY_delta[:, 1], label='E11', alpha=0)
+    ax2.set_xlabel('D_e / $10^{14}$ nm s$^{-1}$')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8, SimFile.QY_delta[:, 1], label='E11')
+    ax1.set_xlabel('{} '.format(SimFile.calc_dict['chosen_const'][chosen_const])+'/ $10^{8}$ s$^{-1}$')
+    ax1.set_ylabel('$(I - I_0 / I_0)$')
+    ax1.legend()
+    plt.tight_layout()
+    return fig
+
+def plot_QY_delta_defect_3_params(SimFile, chosen_const):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twiny()
+    ax2.plot(SimFile.calc_dict['Diff_const'][:, 0]/1e15, SimFile.QY[:, 1]*100, label='E11', alpha=0)
+    ax2.set_xlabel('D_e / $10^{14}$ nm s$^{-1}$')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8,
+             (SimFile.QY[:, 0] - SimFile.QY[0, 0]) / SimFile.QY[0, 0], label='E11*')
+    ax1.plot(SimFile.calc_dict['constant_dependence'][:, chosen_const]/1e8,
+             (SimFile.QY[:, 1] - SimFile.QY[0, 1]) / SimFile.QY[0, 1], label='E11')
+    ax1.set_xlabel('{} '.format(SimFile.calc_dict['chosen_const'][chosen_const])+'/ $10^{8}$ s$^{-1}$')
+    ax1.set_ylabel('$(I - I_0 / I_0)$')
+    ax1.legend()
+    plt.tight_layout()
     return fig
