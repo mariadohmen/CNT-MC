@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Oct  8 17:54:16 2020
+Created on Wed Oct 21 16:47:51 2020
 
 @author: student
 """
@@ -45,23 +45,10 @@ constants_array = np.zeros((10, 2))
 constants_array[:, 0] = np.linspace(1e8, 2e8, 10)
 constants_array[:, 1] = np.linspace(4e8, 8e8, 10)
 
-for i in np.arange(10):
-    sim = CNTSimFile(
-            f'../sim_output/2020-10-08-exciton_sim-ker_kbnr_diff_sever_prist_{i}.h5',
-            kin_const_1)
-    sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
-                                                                    'k_bnr'],
-                             ['k_br', 'k_er', 'k_bnr', 'k_enr', 'k_be', 'k_ed',
-                              'k_de', 'k_dnr'],
-                             diff_const,
-                             (1.07e15, 1.07e15/3),
-                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 0,
-                              'CNT_length': 750})
-    sim.save()
 
 for i in np.arange(10):
     sim = CNTSimFile(
-            f'../sim_output/2020-10-08-exciton_sim-ker_kbnr_diff_sever_defect_{i}.h5',
+            f'../sim_output/2020-10-21-exciton_sim-ker_kbnr_diff_sever_8_defect_{i}.h5',
             kin_const_1)
     sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
                                                                     'k_bnr'],
@@ -69,6 +56,6 @@ for i in np.arange(10):
                               'k_de', 'k_dnr'],
                              diff_const,
                              (1.07e15, 1.07e15/3),
-                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 30,
+                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 8,
                               'CNT_length': 750})
     sim.save()
