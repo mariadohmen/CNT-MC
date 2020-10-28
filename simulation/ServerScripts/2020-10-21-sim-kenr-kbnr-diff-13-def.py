@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Oct  8 17:54:16 2020
+Created on Wed Oct 21 16:52:22 2020
 
 @author: student
 """
@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-# scipy constants
+#scipy constants
 from scipy.constants import Boltzmann as kB
 from scipy.constants import Avogadro as NA
 from scipy.constants import Planck as h
@@ -38,37 +38,24 @@ kin_const_1 = np.array([k_br_per_s, k_er_per_s, k_bnr_per_s, k_enr_per_s,
                         k_bd_per_s, k_ed_per_s, k_de_per_s, k_dnr_per_s])
 
 diff_const = np.zeros((10, 2))
-diff_const[:, 0] = np.linspace(1.07e15, 2.14e15, 10)
-diff_const[:, 1] = np.linspace(1.07e15/3, 2.14e15/3, 10)
+diff_const[:, 0] = np.linspace(1.07e15, 1.07e15 * 2, 10)
+diff_const[:, 1] = np.linspace(1.07e15/3, 1.07e15/3 * 2, 10)
 
 constants_array = np.zeros((10, 2))
-constants_array[:, 0] = np.linspace(1e8, 2e8, 10)
-constants_array[:, 1] = np.linspace(4e8, 8e8, 10)
+constants_array[:, 0] = np.linspace(4e8, 4e8 * 3, 10)
+constants_array[:, 1] = np.linspace(2e8, 2e8 / 2, 10)
+
 
 for i in np.arange(10):
     sim = CNTSimFile(
-            f'../sim_output/2020-10-08-exciton_sim-ker_kbnr_diff_sever_prist_{i}.h5',
+            f'../sim_output/2020-10-21-exciton_sim-kenr_kbnr_diff_sever_13_defect_{i}.h5',
             kin_const_1)
-    sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
-                                                                    'k_bnr'],
+    sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_bnr',
+                                                                    'k_enr'],
                              ['k_br', 'k_er', 'k_bnr', 'k_enr', 'k_be', 'k_ed',
                               'k_de', 'k_dnr'],
                              diff_const,
                              (1.07e15, 1.07e15/3),
-                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 0,
-                              'CNT_length': 750})
-    sim.save()
-
-for i in np.arange(10):
-    sim = CNTSimFile(
-            f'../sim_output/2020-10-08-exciton_sim-ker_kbnr_diff_sever_defect_{i}.h5',
-            kin_const_1)
-    sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
-                                                                    'k_bnr'],
-                             ['k_br', 'k_er', 'k_bnr', 'k_enr', 'k_be', 'k_ed',
-                              'k_de', 'k_dnr'],
-                             diff_const,
-                             (1.07e15, 1.07e15/3),
-                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 30,
+                             {'t_step': 1, 'r_exc_nm': 2, 'n_defects': 13,
                               'CNT_length': 750})
     sim.save()
