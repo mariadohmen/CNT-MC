@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 27 16:54:43 2020
+Created on Fri Mar 27 16:54:43 2020.
 
 @author: Maria
 """
@@ -17,7 +17,7 @@ from ipywidgets.widgets import Text
 
 
 class CNTSimFile:
-    """Class which allows MC simulation of a random exciton walk"""
+    """Class which allows MC simulation of a random exciton walk."""
 
     def __init__(self, filepath, rate_const):
         self.filepath = filepath
@@ -32,15 +32,20 @@ class CNTSimFile:
             print('Existing file loaded successfully.')
 
     def __str__(self):
+        """Return the filepath for saving and loading file."""
         return self.filepath
 
     def __repr__(self):
-        return self.rate_const
+        """Return the filepath for saving and loading file."""
+        return self.filepath
 
     def load(self):
-        """Loads existing hdf5 file found at the filepath.
+        """
+        Load existing hdf5 file found at the filepath.
+
         The File is expected to have the folloing keys:
-        positions_x, positions_y, spectra and meta"""
+        positions_x, positions_y, spectra and meta.
+        """
         data = h5py.File(self.filepath)
         self.rate_const = data['rate_const'][:]
         self.QY = data['QY'][:]
@@ -84,14 +89,14 @@ class CNTSimFile:
                                      dtype=np.float32)
             try:
                 hdf5_file.create_dataset('QY_delta', compression='gzip',
-                                     data=self.QY_delta,
-                                     dtype=np.float32)
+                                         data=self.QY_delta,
+                                         dtype=np.float32)
                 hdf5_file.create_dataset('QY_ref', compression='gzip',
-                                     data=self.QY_ref,
-                                     dtype=np.float32)
+                                         data=self.QY_ref,
+                                         dtype=np.float32)
                 hdf5_file.create_dataset('p_fate_ref', compression='gzip',
-                                     data=self.p_fate_ref,
-                                     dtype=np.float32)
+                                         data=self.p_fate_ref,
+                                         dtype=np.float32)
             except AttributeError:
                 pass
             grp = hdf5_file.create_group('dict', )
@@ -104,6 +109,7 @@ class CNTSimFile:
 
     def photons_fate(self, n_photons, func, rate_const, func_kwargs={}):
         """Simulate the fate of numerous photons.
+
         For a key to the fate look a the respective exciton fate function.
 
         Parameters
@@ -116,13 +122,18 @@ class CNTSimFile:
             Dictionary containing the arguments and keyword arguments for
             func.
 
+        Yields
+        ------
+        calc_dict : dict
+            Updated information in the calc_dict object.
+
         Returns
         -------
         photons_fate : 1D array
             Binnend fate of the photons in simulation.
         quantum_yield : 1D array
-            Quantum yield of the E11 and E11* radiative decay."""
-
+            Quantum yield of the E11 and E11* radiative decay.
+        """
         print('Start of exiton simulation:', datetime.datetime.now())
         start_p = time.time()
 
@@ -152,8 +163,7 @@ class CNTSimFile:
     def defect_dependence(self, n_photons, func, n_defects, func_kwargs={},
                           plot=False):
         """
-        Calculates the dependance of the quantum yield on the number of
-        defects.
+        Calculate the quantum yield dependence on the number of defects.
 
         Parameters
         ----------
@@ -162,17 +172,17 @@ class CNTSimFile:
         func : callable
             Function which returns the quantum yield. Also needs to take
             the following arguments:
-        n_defects : list
-            List of integers for the varied number of defects on the
-            nanotube
+            n_defects : list
+                List of integers for the varied number of defects on the
+                nanotube
 
         Yields
         ------
         QY : 2D array
-            Array of quantum yields at different defect density in
+            Array of quantum yields at different defect densities in
             QY object.
         calc_dict : dict
-            Updates information in the calc_dict object.
+            Updated information in the calc_dict object.
         """
         print('start of calculation:', datetime.datetime.now())
         start = time.time()
@@ -212,8 +222,7 @@ class CNTSimFile:
     def length_dependence(self, n_photons, func, CNT_length, defect_density,
                           func_kwargs={}, plot=False):
         """
-        Calculates the dependence of the quantum yield on the number of
-        defects.
+        Calculate the quantum yield dependence on the lenght of the CNT.
 
         Parameters
         ----------
@@ -222,18 +231,18 @@ class CNTSimFile:
         func : callable
             Function which returns the quantum yield. Also needs to take
             the following arguments:
-       CNT_length : list
-            List of the varied length of the CNT in nm.
-        defect_density : float
-            Average between two defects in nm.
+            CNT_length : list
+                List of the varied length of the CNT in nm.
+            defect_density : float
+                Average distance between two defects in nm.
 
         Yields
         ------
         QY : 2D array
-            Array of quantum yields at different defect density in
+            Array of quantum yields at different CNT lenghts in
             QY object.
         calc_dict : dict
-            Updates information in the calc_dict object.
+            Updated information in the calc_dict object.
         """
         print('Start of calculation:', datetime.datetime.now())
         start = time.time()
@@ -279,32 +288,31 @@ class CNTSimFile:
     def diffusion_dependence(self, n_photons, func, diff_const, func_kwargs={},
                              plot=False):
         """
-        Calculates the dependance of the quantum yield on the number of
-        defects.
+        Calculate the quantum yield dependence on the diffusion constants.
 
         Parameters
         ----------
         n_photons : int
             Number of photons used to calculate a single QY value.
         func : callable
-            Function which returns the quantum yield. Also needs to take
+            Function which returns the quantum yield. It needs to take
             the following arguments:
-        Diff_exc_e : float
-            Diffusion constant for excited exciton, global constant as default
-        Diff_exc_d : float
-            Diffusion constant for dark exciton, global constant as default
+                Diff_exc_e : float
+                    Diffusion constant for excited exciton.
+                Diff_exc_d : float
+                    Diffusion constant for dark exciton.
         diff_const : array
             2D numpy array [:, 0] is for diffusion constant of the exited
             state and [:, 1] contains the diffusion constants for the dark
-            state
+            state.
 
         Yields
         ------
         QY : 2D array
-            Array of quantum yields at different defect density in
+            Array of quantum yields with different diffusion constants in
             QY object.
         calc_dict : dict
-            Updates information in the calc_dict object.
+            Updated information in the calc_dict object.
         """
         print('Start of calculation:', datetime.datetime.now())
         start = time.time()
@@ -358,10 +366,13 @@ class CNTSimFile:
             return fig
 
     def referenced_diffusion_dependence(self, n_photons, func, diff_const,
-                                        ref_diff_const, func_kwargs={},
-                                        plot=False):
-        """Calculates the realtive difference of a variation of the diffusion
-        constants to a reference diffusion constant.
+                                        ref_diff_const, func_kwargs={}):
+        """
+        Calculate relative quantum yield dependence on the diffusion constants.
+
+        Calculate the realtive difference of a variation of the diffusion
+        constants to a reference diffusion constant set as
+        (QY - QY_ref) / QY_ref.
 
         Parameters
         ----------
@@ -370,10 +381,25 @@ class CNTSimFile:
             exited state and 1 the diffusion constant of the dark state.
 
         Others arguments see diffusion_dependence.
+
+        Yields
+        ------
+        QY : 2D array
+            Array of quantum yields with different diffusion constants in
+            QY object.
+        QY_ref : 1D array
+            Array of quantum yields calculated wit the chosen reference
+            diffusion constants in QY_ref object.
+        QY_delta : 2D array
+            Array of quantum yields relative to the reference diffusion
+            constant QY_delta object.
+        calc_dict : dict
+            Updated information in the calc_dict object.
         """
         self.calc_dict['ref_diff_const'] = ref_diff_const
         self.calc_dict['function'] = func.__name__
-        self.calc_dict['method'] = self.referenced_diffusion_dependence.__name__
+        self.calc_dict[
+            'method'] = self.referenced_diffusion_dependence.__name__
 
         self.diffusion_dependence(n_photons, func, diff_const,
                                   {**func_kwargs})
@@ -385,15 +411,18 @@ class CNTSimFile:
         self.QY_delta = (self.QY - self.QY_ref) / self.QY_ref
 
     def rate_const_dependence(self, n_photons, func, constant_dependence,
-                             chosen_const, constant_names, func_kwargs={},
-                              plot=False):
+                              chosen_const, constant_names, func_kwargs={}):
         """
-        Calculates Quantum Yield for a varity of rate constants and calculates
+        Calculate rel. and abs. quantum yield dependence on rate constants.
+
+        Calculate quantum yields for a varity of rate constants and calculate
         the difference to the reference set given upon initiation of the
-        CNTSimFile
+        CNTSimFile.
 
         Parameters
         ----------
+        n_photons : int
+            Number of photons used to calculate a single QY value.
         constant_dependence : array
             2D array of shape (n, m), with n variations of m rate constants.
         chosen_const : list
@@ -405,9 +434,16 @@ class CNTSimFile:
 
         Yields
         ------
-        constant_array : array
-            2D array with full set of rate constants used for each simulation
-            step.
+        QY : 2D array
+            Array of quantum yields with different rate constants in QY object.
+        QY_ref : 1D array
+            Array of quantum yields calculated wit the chosen reference rate
+            constants in QY_ref object.
+        QY_delta : 2D array
+            Array of quantum yields relative to the reference rate constant in
+            QY_delta object.
+        calc_dict : dict
+            Updated information in the calc_dict object.
         """
         print('Start of calculation:', datetime.datetime.now())
         start = time.time()
@@ -430,7 +466,7 @@ class CNTSimFile:
         self.p_fate_ref, self.QY_ref = self.photons_fate(
                     n_photons, func, self.rate_const, {**func_kwargs})
 
-        #Check if all names where given
+        # Check if all names where given
         if len(constant_names) != len(self.rate_const):
             raise ValueError('Number of rate constants given upon initiation '
                              'does not match the number of names given.')
@@ -468,15 +504,25 @@ class CNTSimFile:
 
     def parameter_dependence(self, n_photons, func, constant_dependence,
                              chosen_const, constant_names, diff_const,
-                             ref_diff_const, func_kwargs={},
-                              plot=False):
+                             ref_diff_const, func_kwargs={}):
         """
-        Calculates Quantum Yield for a varity of rate constants and diffusion
+        Calculate rel. & abs. quantum yield dependence on multiple parameters.
+
+        Calculate quantum yield for a varity of rate constants and diffusion
         constant. calculates the difference to the reference set given upon
         initiation of the CNTSimFile.
 
         Parameters
         ----------
+        n_photons : int
+            Number of photons used to calculate a single QY value.
+        func : callable
+            Function which returns the quantum yield. It needs to take
+            the following arguments:
+                Diff_exc_e : float
+                    Diffusion constant for excited exciton.
+                Diff_exc_d : float
+                    Diffusion constant for dark exciton.
         constant_dependence : array
             2D array of shape (n, m), with n variations of m rate constants.
         chosen_const : list
@@ -485,13 +531,6 @@ class CNTSimFile:
         constant_names : list
             Ordered list of all the names of rate constants required for the
             function as strings.
-        func : callable
-            Function which returns the quantum yield. Also needs to take
-            the following arguments:
-        Diff_exc_e : float
-            Diffusion constant for excited exciton, global constant as default
-        Diff_exc_d : float
-            Diffusion constant for dark exciton, global constant as default
         diff_const : 2D array
             2D numpy array [:, 0] is for diffusion constant of the exited
             state and [:, 1] contains the diffusion constants for the dark
@@ -502,9 +541,16 @@ class CNTSimFile:
 
         Yields
         ------
-        constant_array : array
-            2D array with full set of rate constants used for each simulation
-            step.
+        QY : 2D array
+            Array of quantum yields with different rate constants in QY object.
+        QY_ref : 1D array
+            Array of quantum yields calculated wit the chosen reference rate
+            constants in QY_ref object.
+        QY_delta : 2D array
+            Array of quantum yields relative to the reference rate constant in
+            QY_delta object.
+        calc_dict : dict
+            Updated information in the calc_dict object.
         """
         print('Start of calculation:', datetime.datetime.now())
         start = time.time()
@@ -531,7 +577,7 @@ class CNTSimFile:
                      'Diff_exc_d': ref_diff_const[1],
                      **func_kwargs})
 
-        #Check if all names where given
+        # Check if all names where given
         if len(constant_names) != len(self.rate_const):
             raise ValueError('Number of rate constants given upon initiation '
                              'does not match the number of names given.')
