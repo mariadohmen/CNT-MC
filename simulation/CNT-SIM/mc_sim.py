@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul 23 19:31:00 2020
+Created on Thu Jul 23 19:31:00 2020.
 
 @author: Maria
 """
@@ -48,7 +48,10 @@ TAU_b_ps = 85
 
 
 def tau_func(n_defects, tau, alpha):
-    """Models the exponential dependence of the lifetime and the number of
+    """
+    Lifetime defect dependence model.
+
+    Models the exponential dependence of the lifetime and the number of
     defects on the nanotube.
     See https://doi.org/10.1021/acsnano.6b02986
 
@@ -70,7 +73,10 @@ def tau_func(n_defects, tau, alpha):
 
 
 def k_nothing_e(t_step, n_defects, alpha, k_er, k_enr, k_ed, tau_e=TAU_e_ps):
-    """Calculates a probability for the exciton to remain in the excited state.
+    """
+    Photon retention time function.
+
+    Calculates a probability for the exciton to remain in the excited state.
 
     Paramaters
     ----------
@@ -93,7 +99,10 @@ def k_nothing_e(t_step, n_defects, alpha, k_er, k_enr, k_ed, tau_e=TAU_e_ps):
 
 
 def k_nothing_b(t_step, n_defects, alpha, k_br, k_bnr, k_be, tau_b=TAU_b_ps):
-    """Calculates a probability for the exciton to remain in the bright state.
+    """
+    Photon retention time function.
+
+    Calculates a probability for the exciton to remain in the bright state.
 
     Paramaters
     ----------
@@ -116,7 +125,10 @@ def k_nothing_b(t_step, n_defects, alpha, k_br, k_bnr, k_be, tau_b=TAU_b_ps):
 
 
 def k_nothing_d(t_step, n_defects, alpha, k_de, k_dnr, tau_d=TAU_d_ps):
-    """Calculates a probability for the exciton to remain in the dark state.
+    """
+    Photon retention time function.
+
+    Calculates a probability for the exciton to remain in the dark state.
 
     Paramaters
     ----------
@@ -139,7 +151,8 @@ def k_nothing_d(t_step, n_defects, alpha, k_de, k_dnr, tau_d=TAU_d_ps):
 
 
 def create_defects(CNT_length=L_nm, n_defects=N_DEF):
-    """Creates defects along the CNT at random position.
+    """
+    Create defects along the CNT at random position.
 
     Parameters
     ----------
@@ -158,7 +171,8 @@ def create_defects(CNT_length=L_nm, n_defects=N_DEF):
 
 
 def create_exciton(CNT_length=L_nm):
-    """Creates exciton on the CNT at random position.
+    """
+    Create exciton on the CNT at random position.
 
     Parameters
     ----------
@@ -168,13 +182,16 @@ def create_exciton(CNT_length=L_nm):
     Returns
     -------
     pos_exc : int
-        Position of the exciton along the CNT as a random integer."""
+        Position of the exciton along the CNT as a random integer.
+    """
     return random.randrange(CNT_length)
 
 
 def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
                                     CNT_length=L_nm, r_exc_nm=R_nm, alpha=1):
     """
+    Four level exciton simulation model.
+
     Simulation with three states above ground state: Excited state S11 (0),
     dark state (1) and bright state S11* (2). Diffusion along the nanotube is
     allowed for state 0 & 1. Exchange is possible between all states. The
@@ -198,7 +215,7 @@ def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
     alpha : float
         Scaling factor for the exponential relation between the lifetime and
         the number of defects on the nanotube in form of:
-        tau = tau_inf + 18.56986 * np.exp(- alpha * (n_defects + 0.05333) 
+        tau = tau_inf + 18.56986 * np.exp(- alpha * (n_defects + 0.05333)
                                         /1.42987)
         See: https://doi.org/10.1021/acsnano.6b02986
 
@@ -220,7 +237,6 @@ def exciton_sim_4_lvl_full_exchange(t_step, rate_const, n_defects=N_DEF,
             fate = 9 : Exciton goes into excited state (0)
             fate = 10 : Exciton becomes trapped in bright state (2)
     """
-
     constants = np.zeros(11)
     constants[:6] = rate_const[:6]
     constants[-2] = rate_const[-1]
@@ -340,12 +356,14 @@ def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
                 Diff_exc_d=D_d_exc_nm_per_s, n_defects=N_DEF,
                 CNT_length=L_nm, r_exc_nm=R_nm, alpha=1):
     """
+    Four level exciton simulation model.
+
     Simulation with three states above ground state: Excited state S11 (0, e),
-    dark state (1, d) and bright state S11* (2, b). Diffusion along the nanotube is
-    allowed for state 0 & 1. Exchange is possible between all states. The
-    transition into the trap from 0 & 1 to 2 is modeled with MC steps, thermal
-    detrapping is possible. Excitons are quenched if defects are too close
-    together.
+    dark state (1, d) and bright state S11* (2, b). Diffusion along the
+    nanotube is allowed for state 0 & 1. Exchange is possible between all
+    states. The transition into the trap from 0 & 1 to 2 is modeled with
+    MC steps, thermal detrapping is possible. Excitons are quenched if defects
+    are too close together.
 
     Parameters
     ----------
@@ -367,7 +385,7 @@ def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
     alpha : float
         Scaling factor for the exponential relation between the lifetime and
         the number of defects on the nanotube in form of:
-        tau = tau_0 + 18.56986 * np.exp(- alpha * (n_defects + 0.05333) 
+        tau = tau_0 + 18.56986 * np.exp(- alpha * (n_defects + 0.05333)
                                         /1.42987)
         See: https://doi.org/10.1021/acsnano.6b02986
 
@@ -388,7 +406,6 @@ def exciton_sim(t_step, rate_const, Diff_exc_e=D_e_exc_nm_per_s,
             fate = 9 : Exciton goes into excited state (0)
             fate = 10 : Exciton becomes trapped in bright state (2)
     """
-
     constants = np.zeros(11)
     constants[:6] = rate_const[:6]
     constants[-2] = rate_const[-1]
