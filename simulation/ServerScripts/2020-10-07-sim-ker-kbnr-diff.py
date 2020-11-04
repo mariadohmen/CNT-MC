@@ -47,7 +47,7 @@ constants_array[:, 1] = np.linspace(4e8, 2e8, 10)
 
 for i in np.arange(10):
     sim = CNTSimFile(
-            f'../sim_output/2020-10-06-exciton_sim-ker_kbnr_diff_sever_prist_{i}.h5',
+            f'../sim_output/2020-10-07-exciton_sim-ker_kbnr_diff_sever_prist_{i}.h5',
             kin_const_1)
     sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
                                                                     'k_bnr'],
@@ -61,9 +61,9 @@ for i in np.arange(10):
 
 for i in np.arange(10):
     sim = CNTSimFile(
-            f'../sim_output/2020-10-06-exciton_sim-ker_kbnr_diff_sever_defect_{i}.h5',
+            f'../sim_output/2020-10-07-exciton_sim-ker_kbnr_diff_sever_defect_{i}.h5',
             kin_const_1)
-    sim.parameter_dependence(100000, exciton_sim, constants_array, ['k_er',
+    sim.parameter_dependence(10000, exciton_sim, constants_array, ['k_er',
                                                                     'k_bnr'],
                              ['k_br', 'k_er', 'k_bnr', 'k_enr', 'k_be', 'k_ed',
                               'k_de', 'k_dnr'],
